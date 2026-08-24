@@ -171,7 +171,7 @@ class MainActivity : ComponentActivity() {
         if (covers.isEmpty()) return@BoxWithConstraints
         val loopingCovers = remember(covers) { covers + covers }
         val gridState = rememberLazyGridState()
-        val pixelsPerSecond = constraints.maxHeight.toFloat() / 10f
+        val pixelsPerSecond = constraints.maxHeight.toFloat() / 15f
 
         LaunchedEffect(loopingCovers, pixelsPerSecond) {
             var previousFrame = 0L
