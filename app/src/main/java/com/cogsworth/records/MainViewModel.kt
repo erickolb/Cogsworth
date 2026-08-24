@@ -21,6 +21,8 @@ data class AppState(
     val libraryVisible: Boolean = false,
     val releases: List<CollectionItem> = emptyList(),
     val selectedRelease: CollectionItem? = null,
+    val changeCollectionVisible: Boolean = false,
+    val notice: String? = null,
     val acknowledgementsVisible: Boolean = false,
     val query: String = "",
     val sort: SortMode = SortMode.ARTIST,
@@ -91,6 +93,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun show(item: CollectionItem) { _state.value = _state.value.copy(selectedRelease = item) }
     fun shuffle() { _state.value.releases.randomOrNull()?.let(::show) }
     fun dismissDetail() { _state.value = _state.value.copy(selectedRelease = null) }
+    fun showChangeCollection() { _state.value = _state.value.copy(changeCollectionVisible = true) }
+    fun dismissChangeCollection() { _state.value = _state.value.copy(changeCollectionVisible = false) }
+    fun dismissNotice() { _state.value = _state.value.copy(notice = null) }
+
+    fun moveSelectedRelease(destination: DiscogsFolder) {
+        val item = _state.value.selectedRelease ?: return
+        launchRequest {
+            repository.move(item, destination.id)
+            val movedItem = item.copy(folderId = destination.id)
+            val oldFolderId = item.folderId
+            _state.value = _state.value.copy(
+                releases = if (destination.id in _state.value.selectedFolderIds) {
+                    _state.value.releases.map { if (it.instanceId == item.instanceId) movedItem else it }
+                } else {
+                    _state.value.releases.filterNot { it.instanceId == item.instanceId }
+                },
+                folders = _state.value.folders.map { folder ->
+                    when (folder.id) {
+                        oldFolderId -> folder.copy(count = (folder.count - 1).coerceAtLeast(0))
+                        destination.id -> folder.copy(count = folder.count + 1)
+                        else -> folder
+                    }
+                },
+                selectedRelease = null,
+                changeCollectionVisible = false,
+                notice = "Moved to ${destination.name}"
+            )
+        }
+    }
     fun showAcknowledgements() { _state.value = _state.value.copy(acknowledgementsVisible = true) }
     fun dismissAcknowledgements() { _state.value = _state.value.copy(acknowledgementsVisible = false) }
     fun backToFolders() { _state.value = _state.value.copy(libraryVisible = false, releases = emptyList(), query = "") }

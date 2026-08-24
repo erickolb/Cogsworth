@@ -5,6 +5,7 @@ import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.HttpException
 
 class DiscogsRepository(context: Context) {
     val credentials = CredentialStore(context)
@@ -33,5 +34,16 @@ class DiscogsRepository(context: Context) {
             page++
         } while (page <= response.pagination.pages)
         return result
+    }
+
+    suspend fun move(item: CollectionItem, destinationFolderId: Int) {
+        val response = api().moveRelease(
+            credentials.username,
+            item.folderId,
+            item.id,
+            item.instanceId,
+            MoveCollectionItemRequest(destinationFolderId)
+        )
+        if (!response.isSuccessful) throw HttpException(response)
     }
 }

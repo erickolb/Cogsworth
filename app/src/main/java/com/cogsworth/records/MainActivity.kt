@@ -1,6 +1,7 @@
 package com.cogsworth.records
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.cogsworth.records.data.CollectionItem
@@ -70,11 +72,12 @@ class MainActivity : ComponentActivity() {
 
 @Composable private fun CogsworthApp(model: MainViewModel) {
     val state by model.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     Surface(Modifier.fillMaxSize(), color = Night) {
         when {
             !state.configured -> SetupScreen(model::configure)
             state.acknowledgementsVisible -> AcknowledgementsScreen(model::dismissAcknowledgements)
-            state.selectedRelease != null -> RecordDetail(state.selectedRelease!!, model::dismissDetail)
+            state.selectedRelease != null -> RecordDetail(state.selectedRelease!!, model::dismissDetail, model::showChangeCollection)
             state.libraryVisible -> LibraryScreen(state, model)
             else -> FolderScreen(state, model)
         }
@@ -83,6 +86,19 @@ class MainActivity : ComponentActivity() {
     state.error?.let { error ->
         AlertDialog(onDismissRequest = model::dismissError, confirmButton = { TextButton(onClick = model::dismissError) { Text("OK") } },
             title = { Text("Something went wrong") }, text = { Text(error) })
+    }
+    if (state.changeCollectionVisible && state.selectedRelease != null) {
+        ChangeCollectionDialog(
+            folders = state.folders.filter { it.id != state.selectedRelease!!.folderId },
+            onSelect = model::moveSelectedRelease,
+            onDismiss = model::dismissChangeCollection
+        )
+    }
+    LaunchedEffect(state.notice) {
+        state.notice?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            model.dismissNotice()
+        }
     }
 }
 
@@ -182,7 +198,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable private fun RecordDetail(item: CollectionItem, back: () -> Unit) {
+@Composable private fun RecordDetail(item: CollectionItem, back: () -> Unit, changeCollection: () -> Unit) {
     val album = item.basic
     BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         val compact = maxHeight < 680.dp
@@ -192,7 +208,7 @@ class MainActivity : ComponentActivity() {
                 Spacer(Modifier.weight(1f)); Text("NOW SPINNING", letterSpacing = 2.sp, fontSize = 12.sp, color = Lavender)
             }
             AsyncImage(album.coverImage ?: album.thumb, "${album.artistName} — ${album.title}",
-                Modifier.size(if (compact) 250.dp else 330.dp).padding(vertical = 8.dp), contentScale = ContentScale.Crop)
+                Modifier.size(if (compact) 220.dp else 330.dp).padding(vertical = 8.dp), contentScale = ContentScale.Crop)
             Text(album.artistName, fontWeight = FontWeight.Black, fontSize = if (compact) 22.sp else 27.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(album.title, fontSize = if (compact) 19.sp else 23.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             HorizontalDivider(Modifier.padding(vertical = if (compact) 10.dp else 18.dp), color = Lavender.copy(alpha = .35f))
@@ -200,8 +216,38 @@ class MainActivity : ComponentActivity() {
             Metadata("LABEL", album.labelName)
             Metadata("FORMAT", album.formatName)
             Metadata("GENRE", (album.genres + album.styles).distinct().joinToString(" · ").ifBlank { "Unknown" })
+            Spacer(Modifier.weight(1f))
+            OutlinedButton(changeCollection, Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Text("Change Collection")
+            }
         }
     }
+}
+
+@Composable private fun ChangeCollectionDialog(
+    folders: List<DiscogsFolder>,
+    onSelect: (DiscogsFolder) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Move to collection") },
+        text = {
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 360.dp)) {
+                items(folders, key = { it.id }) { folder ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onSelect(folder) }.padding(vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(folder.name, Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                        Text("${folder.count}", color = Color.Gray, fontSize = 12.sp)
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable private fun Metadata(label: String, value: String) {

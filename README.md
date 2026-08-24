@@ -8,6 +8,7 @@ A native Android browser and shuffle picker for a Discogs collection. Discogs cu
 - Browse by artist or album title
 - Search artist, album, label, or genre
 - Shuffle within the selected folder
+- Move an album between existing Discogs collection folders
 - Compact, non-scrolling album detail screen
 - One-time personal-token setup, encrypted with Android Keystore
 - Cogsworth launcher icon with in-app creator attribution
