@@ -10,6 +10,7 @@ A native Android browser and shuffle picker for a Discogs collection. Discogs cu
 - Shuffle within the selected folder
 - Move an album between existing Discogs collection folders
 - Select and move multiple physical album instances with confirmation and progress
+- Kiosk-friendly 60-second idle mosaic with a continuously scrolling wall of album covers
 - Compact, non-scrolling album detail screen
 - One-time personal-token setup, encrypted with Android Keystore
 - Cogsworth launcher icon with in-app creator attribution

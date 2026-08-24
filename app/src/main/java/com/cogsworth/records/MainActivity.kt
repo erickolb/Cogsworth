@@ -2,6 +2,7 @@ package com.cogsworth.records
 
 import android.os.Bundle
 import android.widget.Toast
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,6 +13,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
@@ -26,16 +33,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.cogsworth.records.data.CollectionItem
 import com.cogsworth.records.data.DiscogsFolder
+import kotlinx.coroutines.delay
+import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 private val Night = Color(0xFF101014)
 private val Charcoal = Color(0xFF1A1A20)
@@ -46,6 +60,7 @@ class MainActivity : ComponentActivity() {
     private val model: MainViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enableEdgeToEdge()
         setContent { CogsworthTheme { CogsworthApp(model) } }
     }
@@ -74,30 +89,57 @@ class MainActivity : ComponentActivity() {
 @Composable private fun CogsworthApp(model: MainViewModel) {
     val state by model.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    Surface(Modifier.fillMaxSize(), color = Night) {
-        when {
-            !state.configured -> SetupScreen(model::configure)
-            state.bulkMoveProgress != null -> BulkMoveProgressScreen(state.bulkMoveProgress!!)
-            state.bulkDestinationPickerVisible -> BulkDestinationScreen(state, model)
-            state.acknowledgementsVisible -> AcknowledgementsScreen(model::dismissAcknowledgements)
-            state.selectedRelease != null -> RecordDetail(state.selectedRelease!!, model::dismissDetail, model::showChangeCollection)
-            state.libraryVisible -> LibraryScreen(state, model)
-            else -> FolderScreen(state, model)
+    var idleVisible by remember { mutableStateOf(false) }
+    var interactionVersion by remember { mutableLongStateOf(0L) }
+    val idleEligible = state.releases.any { !it.basic.thumb.isNullOrBlank() || !it.basic.coverImage.isNullOrBlank() }
+
+    LaunchedEffect(interactionVersion, state.bulkMoveProgress, state.loading, idleEligible, idleVisible) {
+        if (!idleVisible && idleEligible && !state.loading && state.bulkMoveProgress == null) {
+            delay(60_000)
+            model.prepareForIdle()
+            idleVisible = true
         }
-        if (state.loading) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .12f)), Alignment.Center) { CircularProgressIndicator() }
     }
-    state.error?.let { error ->
+
+    Box(
+        Modifier.fillMaxSize().pointerInput(idleVisible) {
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    if (event.changes.any { it.pressed && !it.previousPressed }) {
+                        interactionVersion++
+                        if (idleVisible) idleVisible = false
+                    }
+                }
+            }
+        }
+    ) {
+        Surface(Modifier.fillMaxSize(), color = Night) {
+            when {
+                idleVisible -> IdleMosaicScreen(state.releases)
+                !state.configured -> SetupScreen(model::configure)
+                state.bulkMoveProgress != null -> BulkMoveProgressScreen(state.bulkMoveProgress!!)
+                state.bulkDestinationPickerVisible -> BulkDestinationScreen(state, model)
+                state.acknowledgementsVisible -> AcknowledgementsScreen(model::dismissAcknowledgements)
+                state.selectedRelease != null -> RecordDetail(state.selectedRelease!!, model::dismissDetail, model::showChangeCollection)
+                state.libraryVisible -> LibraryScreen(state, model)
+                else -> FolderScreen(state, model)
+            }
+            if (state.loading) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .12f)), Alignment.Center) { CircularProgressIndicator() }
+        }
+    }
+    if (!idleVisible) state.error?.let { error ->
         AlertDialog(onDismissRequest = model::dismissError, confirmButton = { TextButton(onClick = model::dismissError) { Text("OK") } },
             title = { Text("Something went wrong") }, text = { Text(error) })
     }
-    if (state.changeCollectionVisible && state.selectedRelease != null) {
+    if (!idleVisible && state.changeCollectionVisible && state.selectedRelease != null) {
         ChangeCollectionDialog(
             folders = state.folders.filter { it.id != state.selectedRelease!!.folderId },
             onSelect = model::moveSelectedRelease,
             onDismiss = model::dismissChangeCollection
         )
     }
-    if (state.bulkConfirmationVisible && state.bulkDestination != null) {
+    if (!idleVisible && state.bulkConfirmationVisible && state.bulkDestination != null) {
         val destination = state.bulkDestination!!
         val moveCount = state.bulkSelectedItems.count { it.folderId != destination.id }
         AlertDialog(
@@ -112,6 +154,70 @@ class MainActivity : ComponentActivity() {
         state.notice?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             model.dismissNotice()
+        }
+    }
+}
+
+@Composable private fun IdleMosaicScreen(releases: List<CollectionItem>) {
+    val sourceCovers = remember(releases) {
+        releases.mapNotNull { it.basic.thumb?.takeIf(String::isNotBlank) ?: it.basic.coverImage?.takeIf(String::isNotBlank) }
+            .shuffled()
+    }
+    val covers = remember(sourceCovers) {
+        when {
+            sourceCovers.isEmpty() -> emptyList()
+            sourceCovers.size >= 60 -> sourceCovers.take(60)
+            else -> List(60) { sourceCovers[it % sourceCovers.size] }.shuffled()
+        }
+    }
+    BoxWithConstraints(Modifier.fillMaxSize().background(Night)) {
+        if (covers.isEmpty()) return@BoxWithConstraints
+        val tileSize = maxWidth / 3
+        val rows = ceil(covers.size / 3f).toInt()
+        val gridHeight = tileSize * rows
+        val density = LocalDensity.current
+        val distancePx = with(density) { gridHeight.toPx() }
+        val durationMillis = ((gridHeight.value / maxHeight.value) * 10_000).roundToInt().coerceAtLeast(10_000)
+        val transition = rememberInfiniteTransition(label = "album mosaic")
+        val offset by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = -distancePx,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "mosaic scroll"
+        )
+        Column(Modifier.fillMaxWidth().graphicsLayer { translationY = offset }) {
+            MosaicGrid(covers, tileSize)
+            MosaicGrid(covers, tileSize)
+        }
+        Surface(
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
+            color = Color.Black.copy(alpha = .62f),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Text("Tap to return", Modifier.padding(horizontal = 18.dp, vertical = 9.dp), color = Cloud, fontSize = 13.sp)
+        }
+    }
+}
+
+@Composable private fun MosaicGrid(covers: List<String>, tileSize: androidx.compose.ui.unit.Dp) {
+    covers.chunked(3).forEach { rowCovers ->
+        Row(Modifier.fillMaxWidth()) {
+            repeat(3) { column ->
+                val cover = rowCovers.getOrNull(column)
+                if (cover == null) {
+                    Spacer(Modifier.size(tileSize))
+                } else {
+                    AsyncImage(
+                        model = cover,
+                        contentDescription = null,
+                        modifier = Modifier.size(tileSize).padding(1.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
         }
     }
 }

@@ -90,7 +90,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleFolder(folder: DiscogsFolder) {
         val selected = _state.value.selectedFolderIds
         _state.value = _state.value.copy(
-            selectedFolderIds = if (folder.id in selected) selected - folder.id else selected + folder.id
+            selectedFolderIds = if (folder.id in selected) selected - folder.id else selected + folder.id,
+            releases = if (_state.value.libraryVisible) _state.value.releases else emptyList()
         )
     }
 
@@ -248,7 +249,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun showAcknowledgements() { _state.value = _state.value.copy(acknowledgementsVisible = true) }
     fun dismissAcknowledgements() { _state.value = _state.value.copy(acknowledgementsVisible = false) }
-    fun backToFolders() { _state.value = _state.value.copy(libraryVisible = false, releases = emptyList(), query = "") }
+    fun backToFolders() { _state.value = _state.value.copy(libraryVisible = false, query = "") }
+
+    fun prepareForIdle() {
+        if (_state.value.releases.isEmpty()) return
+        _state.value = _state.value.copy(
+            libraryVisible = true,
+            acknowledgementsVisible = false,
+            selectedRelease = null,
+            changeCollectionVisible = false,
+            bulkMoveMode = false,
+            bulkSelectedInstanceIds = emptySet(),
+            bulkDestinationPickerVisible = false,
+            bulkDestination = null,
+            bulkConfirmationVisible = false,
+            error = null,
+            query = ""
+        )
+    }
     fun dismissError() { _state.value = _state.value.copy(error = null) }
     fun signOut() { repository.credentials.clear(); _state.value = AppState() }
 
