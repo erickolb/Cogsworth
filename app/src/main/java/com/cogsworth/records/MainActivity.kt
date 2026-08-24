@@ -12,13 +12,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
@@ -33,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -42,14 +40,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.cogsworth.records.data.CollectionItem
 import com.cogsworth.records.data.DiscogsFolder
 import kotlinx.coroutines.delay
-import kotlin.math.ceil
-import kotlin.math.roundToInt
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 
 private val Night = Color(0xFF101014)
 private val Charcoal = Color(0xFF1A1A20)
@@ -172,25 +169,42 @@ class MainActivity : ComponentActivity() {
     }
     BoxWithConstraints(Modifier.fillMaxSize().background(Night)) {
         if (covers.isEmpty()) return@BoxWithConstraints
-        val tileSize = maxWidth / 3
-        val rows = ceil(covers.size / 3f).toInt()
-        val gridHeight = tileSize * rows
-        val density = LocalDensity.current
-        val distancePx = with(density) { gridHeight.toPx() }
-        val durationMillis = ((gridHeight.value / maxHeight.value) * 10_000).roundToInt().coerceAtLeast(10_000)
-        val transition = rememberInfiniteTransition(label = "album mosaic")
-        val offset by transition.animateFloat(
-            initialValue = 0f,
-            targetValue = -distancePx,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "mosaic scroll"
-        )
-        Column(Modifier.fillMaxWidth().graphicsLayer { translationY = offset }) {
-            MosaicGrid(covers, tileSize)
-            MosaicGrid(covers, tileSize)
+        val loopingCovers = remember(covers) { covers + covers }
+        val gridState = rememberLazyGridState()
+        val pixelsPerSecond = constraints.maxHeight.toFloat() / 10f
+
+        LaunchedEffect(loopingCovers, pixelsPerSecond) {
+            var previousFrame = 0L
+            while (currentCoroutineContext().isActive) {
+                val frame = withFrameNanos { it }
+                if (previousFrame != 0L) {
+                    val elapsedSeconds = (frame - previousFrame) / 1_000_000_000f
+                    gridState.scrollBy(pixelsPerSecond * elapsedSeconds)
+                    if (gridState.firstVisibleItemIndex >= covers.size) {
+                        gridState.scrollToItem(
+                            gridState.firstVisibleItemIndex - covers.size,
+                            gridState.firstVisibleItemScrollOffset
+                        )
+                    }
+                }
+                previousFrame = frame
+            }
+        }
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            state = gridState,
+            userScrollEnabled = false,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            itemsIndexed(loopingCovers, key = { index, cover -> "$index-$cover" }) { _, cover ->
+                AsyncImage(
+                    model = cover,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).padding(1.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
         Surface(
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
@@ -198,26 +212,6 @@ class MainActivity : ComponentActivity() {
             shape = RoundedCornerShape(24.dp)
         ) {
             Text("Tap to return", Modifier.padding(horizontal = 18.dp, vertical = 9.dp), color = Cloud, fontSize = 13.sp)
-        }
-    }
-}
-
-@Composable private fun MosaicGrid(covers: List<String>, tileSize: androidx.compose.ui.unit.Dp) {
-    covers.chunked(3).forEach { rowCovers ->
-        Row(Modifier.fillMaxWidth()) {
-            repeat(3) { column ->
-                val cover = rowCovers.getOrNull(column)
-                if (cover == null) {
-                    Spacer(Modifier.size(tileSize))
-                } else {
-                    AsyncImage(
-                        model = cover,
-                        contentDescription = null,
-                        modifier = Modifier.size(tileSize).padding(1.dp),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-            }
         }
     }
 }
