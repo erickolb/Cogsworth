@@ -297,7 +297,11 @@ class MainActivity : ComponentActivity() {
             } else {
                 FilledTonalIconButton(model::startBulkMove, enabled = state.releases.isNotEmpty()) { Icon(Icons.AutoMirrored.Rounded.DriveFileMove, "Change Collection mode") }
                 Spacer(Modifier.width(6.dp))
-                FilledTonalIconButton(model::shuffle, enabled = state.releases.isNotEmpty()) { Icon(Icons.Rounded.Casino, "Shuffle") }
+                FilledTonalButton(model::shuffle, enabled = state.releases.isNotEmpty()) {
+                    Icon(Icons.Rounded.Casino, null)
+                    Spacer(Modifier.width(7.dp))
+                    Text("Random Album")
+                }
             }
         }
         if (state.bulkMoveMode) {
