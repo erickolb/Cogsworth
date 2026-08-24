@@ -34,4 +34,11 @@ class AppStateTest {
         val state = AppState(folders = folders, selectedFolderIds = setOf(1, 2))
         assertEquals("Lounge + Soundtracks", state.collectionTitle)
     }
+
+    @Test fun bulkSelectionTracksPhysicalInstances() {
+        val firstCopy = record(1, "Bowie, David", "Low")
+        val secondCopy = record(2, "Bowie, David", "Low")
+        val state = AppState(releases = listOf(firstCopy, secondCopy), bulkSelectedInstanceIds = setOf(2))
+        assertEquals(listOf(2L), state.bulkSelectedItems.map { it.instanceId })
+    }
 }

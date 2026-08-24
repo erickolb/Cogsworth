@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Info
@@ -76,6 +77,8 @@ class MainActivity : ComponentActivity() {
     Surface(Modifier.fillMaxSize(), color = Night) {
         when {
             !state.configured -> SetupScreen(model::configure)
+            state.bulkMoveProgress != null -> BulkMoveProgressScreen(state.bulkMoveProgress!!)
+            state.bulkDestinationPickerVisible -> BulkDestinationScreen(state, model)
             state.acknowledgementsVisible -> AcknowledgementsScreen(model::dismissAcknowledgements)
             state.selectedRelease != null -> RecordDetail(state.selectedRelease!!, model::dismissDetail, model::showChangeCollection)
             state.libraryVisible -> LibraryScreen(state, model)
@@ -92,6 +95,17 @@ class MainActivity : ComponentActivity() {
             folders = state.folders.filter { it.id != state.selectedRelease!!.folderId },
             onSelect = model::moveSelectedRelease,
             onDismiss = model::dismissChangeCollection
+        )
+    }
+    if (state.bulkConfirmationVisible && state.bulkDestination != null) {
+        val destination = state.bulkDestination!!
+        val moveCount = state.bulkSelectedItems.count { it.folderId != destination.id }
+        AlertDialog(
+            onDismissRequest = model::cancelBulkMove,
+            title = { Text("Confirm collection change") },
+            text = { Text("This action will move $moveCount albums to the ${destination.name} collection. Proceed?") },
+            confirmButton = { Button(model::proceedBulkMove) { Text("Proceed") } },
+            dismissButton = { TextButton(model::cancelBulkMove) { Text("Cancel") } }
         )
     }
     LaunchedEffect(state.notice) {
@@ -170,9 +184,22 @@ class MainActivity : ComponentActivity() {
 @Composable private fun LibraryScreen(state: AppState, model: MainViewModel) {
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(model::backToFolders) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Collections") }
+            IconButton(if (state.bulkMoveMode) model::cancelBulkMove else model::backToFolders) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Collections") }
             Column(Modifier.weight(1f)) { Text(state.collectionTitle, fontWeight = FontWeight.Bold, fontSize = 22.sp, maxLines = 1, overflow = TextOverflow.Ellipsis); Text("${state.releases.size} records", color = Color.Gray, fontSize = 13.sp) }
-            FilledTonalIconButton(model::shuffle, enabled = state.releases.isNotEmpty()) { Icon(Icons.Rounded.Casino, "Shuffle") }
+            if (state.bulkMoveMode) {
+                FilledTonalIconButton({}, enabled = false) { Icon(Icons.AutoMirrored.Rounded.DriveFileMove, "Change Collection mode") }
+            } else {
+                FilledTonalIconButton(model::startBulkMove, enabled = state.releases.isNotEmpty()) { Icon(Icons.AutoMirrored.Rounded.DriveFileMove, "Change Collection mode") }
+                Spacer(Modifier.width(6.dp))
+                FilledTonalIconButton(model::shuffle, enabled = state.releases.isNotEmpty()) { Icon(Icons.Rounded.Casino, "Shuffle") }
+            }
+        }
+        if (state.bulkMoveMode) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("${state.bulkSelectedInstanceIds.size} selected", Modifier.weight(1f).padding(start = 8.dp), color = Color.Gray)
+                TextButton(model::cancelBulkMove) { Text("Cancel") }
+                TextButton(model::showBulkDestinationPicker, enabled = state.bulkSelectedInstanceIds.isNotEmpty()) { Text("Change Collection…") }
+            }
         }
         OutlinedTextField(state.query, model::setQuery, placeholder = { Text("Search artist, album, label, genre") }, leadingIcon = { Icon(Icons.Rounded.Search, null) },
             trailingIcon = { if (state.query.isNotEmpty()) IconButton({ model.setQuery("") }) { Icon(Icons.Rounded.Clear, "Clear") } },
@@ -181,13 +208,25 @@ class MainActivity : ComponentActivity() {
             Tab(state.sort == SortMode.ARTIST, { model.setSort(SortMode.ARTIST) }, text = { Text("ARTIST") })
             Tab(state.sort == SortMode.ALBUM, { model.setSort(SortMode.ALBUM) }, text = { Text("ALBUM") })
         }
-        LazyColumn(contentPadding = PaddingValues(vertical = 6.dp, horizontal = 12.dp)) {
-            items(state.visibleReleases, key = { it.instanceId }) { RecordRow(it, model::show) }
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(vertical = 6.dp, horizontal = 12.dp)) {
+            items(state.visibleReleases, key = { it.instanceId }) { item ->
+                RecordRow(
+                    item = item,
+                    selectionMode = state.bulkMoveMode,
+                    selected = item.instanceId in state.bulkSelectedInstanceIds,
+                    onClick = if (state.bulkMoveMode) model::toggleBulkItem else model::show
+                )
+            }
         }
     }
 }
 
-@Composable private fun RecordRow(item: CollectionItem, onClick: (CollectionItem) -> Unit) {
+@Composable private fun RecordRow(
+    item: CollectionItem,
+    selectionMode: Boolean,
+    selected: Boolean,
+    onClick: (CollectionItem) -> Unit
+) {
     Row(Modifier.fillMaxWidth().clickable { onClick(item) }.padding(7.dp), verticalAlignment = Alignment.CenterVertically) {
         AsyncImage(item.basic.thumb ?: item.basic.coverImage, null, Modifier.size(62.dp), contentScale = ContentScale.Crop)
         Column(Modifier.weight(1f).padding(horizontal = 13.dp)) {
@@ -195,6 +234,7 @@ class MainActivity : ComponentActivity() {
             Text(item.basic.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(listOf(item.basic.year.takeIf { it > 0 }?.toString(), item.basic.formatName).filterNotNull().joinToString(" · "), color = Color.Gray, fontSize = 12.sp, maxLines = 1)
         }
+        if (selectionMode) Checkbox(selected, { onClick(item) })
     }
 }
 
@@ -221,6 +261,53 @@ class MainActivity : ComponentActivity() {
                 Text("Change Collection")
             }
         }
+    }
+}
+
+@Composable private fun BulkDestinationScreen(state: AppState, model: MainViewModel) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(model::cancelBulkMove) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Cancel") }
+            Column {
+                Text("Choose a collection", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                Text("${state.bulkSelectedInstanceIds.size} albums selected", color = Color.Gray, fontSize = 13.sp)
+            }
+        }
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(state.folders, key = { it.id }) { folder ->
+                val enabled = state.bulkSelectedItems.any { it.folderId != folder.id }
+                Card(
+                    Modifier.fillMaxWidth().clickable(enabled = enabled) { model.selectBulkDestination(folder) },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                ) {
+                    Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(folder.name, Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 19.sp, color = if (enabled) Cloud else Color.Gray)
+                        Text(if (enabled) "${folder.count} records" else "Already here", color = Color.Gray, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+        TextButton(model::cancelBulkMove, Modifier.align(Alignment.CenterHorizontally)) { Text("Cancel") }
+    }
+}
+
+@Composable private fun BulkMoveProgressScreen(progress: BulkMoveProgress) {
+    Column(
+        Modifier.fillMaxSize().padding(32.dp).statusBarsPadding().navigationBarsPadding(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(Icons.AutoMirrored.Rounded.DriveFileMove, null, Modifier.size(48.dp), tint = Lavender)
+        Spacer(Modifier.height(22.dp))
+        Text("Changing collections", fontWeight = FontWeight.Bold, fontSize = 24.sp)
+        Text("${progress.completed} of ${progress.total}", color = Color.Gray, modifier = Modifier.padding(vertical = 8.dp))
+        LinearProgressIndicator(
+            progress = { if (progress.total == 0) 0f else progress.completed.toFloat() / progress.total },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+        )
+        Text(progress.currentTitle, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (progress.failed > 0) Text("${progress.failed} failed", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 12.dp))
     }
 }
 
