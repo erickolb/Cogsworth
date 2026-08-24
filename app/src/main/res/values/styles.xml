@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.Cogsworth" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#A3472B</item>
+        <item name="android:navigationBarColor">#F7F0E5</item>
+        <item name="android:statusBarColor">#F7F0E5</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

@@ -1,0 +1,85 @@
+package com.cogsworth.records
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.cogsworth.records.data.CollectionItem
+import com.cogsworth.records.data.DiscogsFolder
+import com.cogsworth.records.data.DiscogsRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+enum class SortMode { ARTIST, ALBUM }
+
+data class AppState(
+    val configured: Boolean = false,
+    val loading: Boolean = false,
+    val folders: List<DiscogsFolder> = emptyList(),
+    val selectedFolder: DiscogsFolder? = null,
+    val releases: List<CollectionItem> = emptyList(),
+    val selectedRelease: CollectionItem? = null,
+    val acknowledgementsVisible: Boolean = false,
+    val query: String = "",
+    val sort: SortMode = SortMode.ARTIST,
+    val error: String? = null
+) {
+    val visibleReleases: List<CollectionItem> get() {
+        val filtered = if (query.isBlank()) releases else releases.filter {
+            it.basic.artistName.contains(query, true) ||
+                it.basic.title.contains(query, true) ||
+                it.basic.labelName.contains(query, true) ||
+                it.basic.genres.any { genre -> genre.contains(query, true) }
+        }
+        return when (sort) {
+            SortMode.ARTIST -> filtered.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.basic.artistName })
+            SortMode.ALBUM -> filtered.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.basic.title })
+        }
+    }
+}
+
+class MainViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository = DiscogsRepository(application)
+    private val _state = MutableStateFlow(AppState(configured = repository.credentials.token() != null))
+    val state: StateFlow<AppState> = _state.asStateFlow()
+
+    init { if (_state.value.configured) loadFolders() }
+
+    fun configure(username: String, token: String) {
+        if (username.isBlank() || token.isBlank()) {
+            _state.value = _state.value.copy(error = "Enter both your Discogs username and token.")
+            return
+        }
+        repository.credentials.save(username, token)
+        _state.value = AppState(configured = true)
+        loadFolders()
+    }
+
+    fun loadFolders() = launchRequest {
+        _state.value = _state.value.copy(folders = repository.folders())
+    }
+
+    fun selectFolder(folder: DiscogsFolder) = launchRequest {
+        _state.value = _state.value.copy(selectedFolder = folder, releases = emptyList())
+        _state.value = _state.value.copy(releases = repository.releases(folder.id))
+    }
+
+    fun setQuery(value: String) { _state.value = _state.value.copy(query = value) }
+    fun setSort(value: SortMode) { _state.value = _state.value.copy(sort = value) }
+    fun show(item: CollectionItem) { _state.value = _state.value.copy(selectedRelease = item) }
+    fun shuffle() { _state.value.releases.randomOrNull()?.let(::show) }
+    fun dismissDetail() { _state.value = _state.value.copy(selectedRelease = null) }
+    fun showAcknowledgements() { _state.value = _state.value.copy(acknowledgementsVisible = true) }
+    fun dismissAcknowledgements() { _state.value = _state.value.copy(acknowledgementsVisible = false) }
+    fun backToFolders() { _state.value = _state.value.copy(selectedFolder = null, releases = emptyList(), query = "") }
+    fun dismissError() { _state.value = _state.value.copy(error = null) }
+    fun signOut() { repository.credentials.clear(); _state.value = AppState() }
+
+    private fun launchRequest(block: suspend () -> Unit) = viewModelScope.launch {
+        _state.value = _state.value.copy(loading = true, error = null)
+        try { block() } catch (e: Exception) {
+            _state.value = _state.value.copy(error = e.message ?: "Discogs could not be reached.")
+        } finally { _state.value = _state.value.copy(loading = false) }
+    }
+}
