@@ -121,7 +121,7 @@ class MainActivity : ComponentActivity() {
                 state.bulkMoveProgress != null -> BulkMoveProgressScreen(state.bulkMoveProgress!!)
                 state.bulkDestinationPickerVisible -> BulkDestinationScreen(state, model)
                 state.acknowledgementsVisible -> AcknowledgementsScreen(model::dismissAcknowledgements)
-                state.selectedRelease != null -> RecordDetail(state.selectedRelease!!, model::dismissDetail, model::showChangeCollection)
+                state.selectedRelease != null -> RecordDetail(state.selectedRelease!!, model::dismissDetail, model::shuffle, model::showChangeCollection)
                 state.libraryVisible -> LibraryScreen(state, model)
                 else -> FolderScreen(state, model)
             }
@@ -348,7 +348,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable private fun RecordDetail(item: CollectionItem, back: () -> Unit, changeCollection: () -> Unit) {
+@Composable private fun RecordDetail(item: CollectionItem, back: () -> Unit, randomAlbum: () -> Unit, changeCollection: () -> Unit) {
     val album = item.basic
     BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         val compact = maxHeight < 680.dp
@@ -367,8 +367,15 @@ class MainActivity : ComponentActivity() {
             Metadata("FORMAT", album.formatName)
             Metadata("GENRE", (album.genres + album.styles).distinct().joinToString(" · ").ifBlank { "Unknown" })
             Spacer(Modifier.weight(1f))
-            OutlinedButton(changeCollection, Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Text("Change Collection")
+            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FilledTonalButton(randomAlbum, Modifier.weight(1f)) {
+                    Icon(Icons.Rounded.Casino, null)
+                    Spacer(Modifier.width(7.dp))
+                    Text("Random Album")
+                }
+                OutlinedButton(changeCollection, Modifier.weight(1f)) {
+                    Text("Change Collection")
+                }
             }
         }
     }

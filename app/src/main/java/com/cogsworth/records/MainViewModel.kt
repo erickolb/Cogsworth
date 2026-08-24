@@ -108,7 +108,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setQuery(value: String) { _state.value = _state.value.copy(query = value) }
     fun setSort(value: SortMode) { _state.value = _state.value.copy(sort = value) }
     fun show(item: CollectionItem) { _state.value = _state.value.copy(selectedRelease = item) }
-    fun shuffle() { _state.value.releases.randomOrNull()?.let(::show) }
+    fun shuffle() {
+        val currentInstanceId = _state.value.selectedRelease?.instanceId
+        val candidates = _state.value.releases.filterNot { it.instanceId == currentInstanceId }
+        (candidates.randomOrNull() ?: _state.value.releases.randomOrNull())?.let(::show)
+    }
     fun dismissDetail() { _state.value = _state.value.copy(selectedRelease = null) }
     fun showChangeCollection() { _state.value = _state.value.copy(changeCollectionVisible = true) }
     fun dismissChangeCollection() { _state.value = _state.value.copy(changeCollectionVisible = false) }
