@@ -17,7 +17,8 @@ data class AppState(
     val configured: Boolean = false,
     val loading: Boolean = false,
     val folders: List<DiscogsFolder> = emptyList(),
-    val selectedFolder: DiscogsFolder? = null,
+    val selectedFolderIds: Set<Int> = emptySet(),
+    val libraryVisible: Boolean = false,
     val releases: List<CollectionItem> = emptyList(),
     val selectedRelease: CollectionItem? = null,
     val acknowledgementsVisible: Boolean = false,
@@ -25,6 +26,14 @@ data class AppState(
     val sort: SortMode = SortMode.ARTIST,
     val error: String? = null
 ) {
+    val selectedFolders: List<DiscogsFolder> get() = folders.filter { it.id in selectedFolderIds }
+    val collectionTitle: String get() = when (selectedFolders.size) {
+        0 -> "Collection"
+        1 -> selectedFolders.first().name
+        2 -> selectedFolders.joinToString(" + ") { it.name }
+        else -> "${selectedFolders.size} collections"
+    }
+
     val visibleReleases: List<CollectionItem> get() {
         val filtered = if (query.isBlank()) releases else releases.filter {
             it.basic.artistName.contains(query, true) ||
@@ -60,9 +69,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = _state.value.copy(folders = repository.folders())
     }
 
-    fun selectFolder(folder: DiscogsFolder) = launchRequest {
-        _state.value = _state.value.copy(selectedFolder = folder, releases = emptyList())
-        _state.value = _state.value.copy(releases = repository.releases(folder.id))
+    fun toggleFolder(folder: DiscogsFolder) {
+        val selected = _state.value.selectedFolderIds
+        _state.value = _state.value.copy(
+            selectedFolderIds = if (folder.id in selected) selected - folder.id else selected + folder.id
+        )
+    }
+
+    fun browseSelectedFolders() {
+        val folders = _state.value.selectedFolders
+        if (folders.isEmpty()) return
+        launchRequest {
+            _state.value = _state.value.copy(libraryVisible = true, releases = emptyList())
+            val combined = folders.flatMap { repository.releases(it.id) }.distinctBy { it.instanceId }
+            _state.value = _state.value.copy(releases = combined)
+        }
     }
 
     fun setQuery(value: String) { _state.value = _state.value.copy(query = value) }
@@ -72,7 +93,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun dismissDetail() { _state.value = _state.value.copy(selectedRelease = null) }
     fun showAcknowledgements() { _state.value = _state.value.copy(acknowledgementsVisible = true) }
     fun dismissAcknowledgements() { _state.value = _state.value.copy(acknowledgementsVisible = false) }
-    fun backToFolders() { _state.value = _state.value.copy(selectedFolder = null, releases = emptyList(), query = "") }
+    fun backToFolders() { _state.value = _state.value.copy(libraryVisible = false, releases = emptyList(), query = "") }
     fun dismissError() { _state.value = _state.value.copy(error = null) }
     fun signOut() { repository.credentials.clear(); _state.value = AppState() }
 

@@ -2,6 +2,7 @@ package com.cogsworth.records
 
 import com.cogsworth.records.data.BasicInformation
 import com.cogsworth.records.data.CollectionItem
+import com.cogsworth.records.data.DiscogsFolder
 import com.cogsworth.records.data.NamedValue
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -26,5 +27,11 @@ class AppStateTest {
     @Test fun searchesArtistAndAlbumIgnoringCase() {
         assertEquals(1, AppState(releases = records, query = "bowie").visibleReleases.size)
         assertEquals(1, AppState(releases = records, query = "APOSTROPHE").visibleReleases.size)
+    }
+
+    @Test fun describesTwoSelectedCollections() {
+        val folders = listOf(DiscogsFolder(1, "Lounge", 12), DiscogsFolder(2, "Soundtracks", 8))
+        val state = AppState(folders = folders, selectedFolderIds = setOf(1, 2))
+        assertEquals("Lounge + Soundtracks", state.collectionTitle)
     }
 }

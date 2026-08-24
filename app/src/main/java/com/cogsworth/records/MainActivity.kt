@@ -58,8 +58,8 @@ class MainActivity : ComponentActivity() {
             !state.configured -> SetupScreen(model::configure)
             state.acknowledgementsVisible -> AcknowledgementsScreen(model::dismissAcknowledgements)
             state.selectedRelease != null -> RecordDetail(state.selectedRelease!!, model::dismissDetail)
-            state.selectedFolder != null -> LibraryScreen(state, model)
-            else -> FolderScreen(state.folders, state.loading, model::selectFolder, model::loadFolders, model::showAcknowledgements, model::signOut)
+            state.libraryVisible -> LibraryScreen(state, model)
+            else -> FolderScreen(state, model)
         }
         if (state.loading) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .12f)), Alignment.Center) { CircularProgressIndicator() }
     }
@@ -85,25 +85,32 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable private fun FolderScreen(folders: List<DiscogsFolder>, loading: Boolean, onSelect: (DiscogsFolder) -> Unit, refresh: () -> Unit, acknowledgements: () -> Unit, signOut: () -> Unit) {
+@Composable private fun FolderScreen(state: AppState, model: MainViewModel) {
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(22.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) { Text("COGSWORTH", letterSpacing = 3.sp, fontWeight = FontWeight.Black, fontSize = 26.sp); Text("Choose a shelf", color = Rust) }
-            IconButton(refresh) { Icon(Icons.Rounded.Refresh, "Refresh") }
-            IconButton(acknowledgements) { Icon(Icons.Rounded.Info, "Acknowledgements") }
+            IconButton(model::loadFolders) { Icon(Icons.Rounded.Refresh, "Refresh") }
+            IconButton(model::showAcknowledgements) { Icon(Icons.Rounded.Info, "Acknowledgements") }
         }
-        LazyColumn(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(folders, key = { it.id }) { folder ->
-                Card(Modifier.fillMaxWidth().clickable { onSelect(folder) }, shape = RoundedCornerShape(18.dp)) {
+        Text("Select one or more collections", Modifier.padding(horizontal = 22.dp, vertical = 6.dp), color = Color.Gray)
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 18.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(state.folders, key = { it.id }) { folder ->
+                val selected = folder.id in state.selectedFolderIds
+                Card(Modifier.fillMaxWidth().clickable { model.toggleFolder(folder) }, shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = if (selected) Rust.copy(alpha = .12f) else MaterialTheme.colorScheme.surfaceContainerLow)) {
                     Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) { Text(folder.name, fontWeight = FontWeight.Bold, fontSize = 20.sp); Text("${folder.count} records", color = Color.Gray) }
-                        Text("›", fontSize = 28.sp, color = Rust)
+                        Checkbox(selected, { model.toggleFolder(folder) })
                     }
                 }
             }
         }
-        if (!loading && folders.isEmpty()) Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) { Text("No custom collection folders found.") }
-        TextButton(signOut, Modifier.align(Alignment.CenterHorizontally).navigationBarsPadding()) { Text("Disconnect Discogs") }
+        if (!state.loading && state.folders.isEmpty()) Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) { Text("No custom collection folders found.") }
+        Button(model::browseSelectedFolders, enabled = state.selectedFolderIds.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 6.dp)) {
+            Text(if (state.selectedFolderIds.size == 1) "Browse selected collection" else "Browse ${state.selectedFolderIds.size} collections")
+        }
+        TextButton(model::signOut, Modifier.align(Alignment.CenterHorizontally).navigationBarsPadding()) { Text("Disconnect Discogs") }
     }
 }
 
@@ -131,7 +138,7 @@ class MainActivity : ComponentActivity() {
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(model::backToFolders) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Collections") }
-            Column(Modifier.weight(1f)) { Text(state.selectedFolder!!.name, fontWeight = FontWeight.Bold, fontSize = 22.sp); Text("${state.releases.size} records", color = Color.Gray, fontSize = 13.sp) }
+            Column(Modifier.weight(1f)) { Text(state.collectionTitle, fontWeight = FontWeight.Bold, fontSize = 22.sp, maxLines = 1, overflow = TextOverflow.Ellipsis); Text("${state.releases.size} records", color = Color.Gray, fontSize = 13.sp) }
             FilledTonalIconButton(model::shuffle, enabled = state.releases.isNotEmpty()) { Icon(Icons.Rounded.Casino, "Shuffle") }
         }
         OutlinedTextField(state.query, model::setQuery, placeholder = { Text("Search artist, album, label, genre") }, leadingIcon = { Icon(Icons.Rounded.Search, null) },
