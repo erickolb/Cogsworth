@@ -157,7 +157,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable private fun IdleMosaicScreen(releases: List<CollectionItem>) {
     val sourceCovers = remember(releases) {
-        releases.mapNotNull { it.basic.thumb?.takeIf(String::isNotBlank) ?: it.basic.coverImage?.takeIf(String::isNotBlank) }
+        releases.mapNotNull { it.basic.coverImage?.takeIf(String::isNotBlank) ?: it.basic.thumb?.takeIf(String::isNotBlank) }
             .shuffled()
     }
     val covers = remember(sourceCovers) {
