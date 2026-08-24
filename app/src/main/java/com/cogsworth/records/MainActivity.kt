@@ -34,9 +34,10 @@ import coil3.compose.AsyncImage
 import com.cogsworth.records.data.CollectionItem
 import com.cogsworth.records.data.DiscogsFolder
 
-private val Paper = Color(0xFFF7F0E5)
-private val Ink = Color(0xFF241D18)
-private val Rust = Color(0xFFA3472B)
+private val Night = Color(0xFF101014)
+private val Charcoal = Color(0xFF1A1A20)
+private val Cloud = Color(0xFFF4F1F8)
+private val Lavender = Color(0xFFA9A7FF)
 
 class MainActivity : ComponentActivity() {
     private val model: MainViewModel by viewModels()
@@ -48,12 +49,28 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable private fun CogsworthTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = lightColorScheme(primary = Rust, background = Paper, surface = Paper, onBackground = Ink), content = content)
+    MaterialTheme(
+        colorScheme = darkColorScheme(
+            primary = Lavender,
+            onPrimary = Color(0xFF17152A),
+            primaryContainer = Color(0xFF353358),
+            onPrimaryContainer = Color(0xFFE4E1FF),
+            secondary = Color(0xFFC8BFFF),
+            background = Night,
+            onBackground = Cloud,
+            surface = Charcoal,
+            onSurface = Cloud,
+            surfaceVariant = Color(0xFF25252D),
+            onSurfaceVariant = Color(0xFFCAC6D0),
+            outline = Color(0xFF918D99)
+        ),
+        content = content
+    )
 }
 
 @Composable private fun CogsworthApp(model: MainViewModel) {
     val state by model.state.collectAsStateWithLifecycle()
-    Surface(Modifier.fillMaxSize(), color = Paper) {
+    Surface(Modifier.fillMaxSize(), color = Night) {
         when {
             !state.configured -> SetupScreen(model::configure)
             state.acknowledgementsVisible -> AcknowledgementsScreen(model::dismissAcknowledgements)
@@ -74,7 +91,7 @@ class MainActivity : ComponentActivity() {
     var token by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center) {
         Text("COGSWORTH", letterSpacing = 4.sp, fontWeight = FontWeight.Black, fontSize = 32.sp)
-        Text("Your shelves, shuffled.", color = Rust, fontSize = 18.sp)
+        Text("Your shelves, shuffled.", color = Lavender, fontSize = 18.sp)
         Spacer(Modifier.height(36.dp))
         Text("Connect Discogs once", fontWeight = FontWeight.Bold, fontSize = 22.sp)
         Text("Create a personal token in Discogs → Settings → Developers. It stays encrypted on this device.", modifier = Modifier.padding(vertical = 10.dp))
@@ -88,7 +105,7 @@ class MainActivity : ComponentActivity() {
 @Composable private fun FolderScreen(state: AppState, model: MainViewModel) {
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(22.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) { Text("COGSWORTH", letterSpacing = 3.sp, fontWeight = FontWeight.Black, fontSize = 26.sp); Text("Choose a shelf", color = Rust) }
+            Column(Modifier.weight(1f)) { Text("COGSWORTH", letterSpacing = 3.sp, fontWeight = FontWeight.Black, fontSize = 26.sp); Text("Choose a shelf", color = Lavender) }
             IconButton(model::loadFolders) { Icon(Icons.Rounded.Refresh, "Refresh") }
             IconButton(model::showAcknowledgements) { Icon(Icons.Rounded.Info, "Acknowledgements") }
         }
@@ -97,7 +114,7 @@ class MainActivity : ComponentActivity() {
             items(state.folders, key = { it.id }) { folder ->
                 val selected = folder.id in state.selectedFolderIds
                 Card(Modifier.fillMaxWidth().clickable { model.toggleFolder(folder) }, shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = if (selected) Rust.copy(alpha = .12f) else MaterialTheme.colorScheme.surfaceContainerLow)) {
+                    colors = CardDefaults.cardColors(containerColor = if (selected) Lavender.copy(alpha = .18f) else MaterialTheme.colorScheme.surfaceContainerLow)) {
                     Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) { Text(folder.name, fontWeight = FontWeight.Bold, fontSize = 20.sp); Text("${folder.count} records", color = Color.Gray) }
                         Checkbox(selected, { model.toggleFolder(folder) })
@@ -122,7 +139,7 @@ class MainActivity : ComponentActivity() {
             Text("Acknowledgements", fontWeight = FontWeight.Bold, fontSize = 22.sp)
         }
         Column(Modifier.padding(24.dp)) {
-            Text("App icon", color = Rust, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text("App icon", color = Lavender, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(Modifier.height(10.dp))
             Text(
                 "Ui icons created by Rooman12 - Flaticon",
@@ -144,7 +161,7 @@ class MainActivity : ComponentActivity() {
         OutlinedTextField(state.query, model::setQuery, placeholder = { Text("Search artist, album, label, genre") }, leadingIcon = { Icon(Icons.Rounded.Search, null) },
             trailingIcon = { if (state.query.isNotEmpty()) IconButton({ model.setQuery("") }) { Icon(Icons.Rounded.Clear, "Clear") } },
             singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
-        TabRow(state.sort.ordinal, containerColor = Paper, modifier = Modifier.padding(top = 8.dp)) {
+        TabRow(state.sort.ordinal, containerColor = Night, modifier = Modifier.padding(top = 8.dp)) {
             Tab(state.sort == SortMode.ARTIST, { model.setSort(SortMode.ARTIST) }, text = { Text("ARTIST") })
             Tab(state.sort == SortMode.ALBUM, { model.setSort(SortMode.ALBUM) }, text = { Text("ALBUM") })
         }
@@ -172,13 +189,13 @@ class MainActivity : ComponentActivity() {
         Column(Modifier.fillMaxSize().padding(horizontal = 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(back) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back") }
-                Spacer(Modifier.weight(1f)); Text("NOW SPINNING", letterSpacing = 2.sp, fontSize = 12.sp, color = Rust)
+                Spacer(Modifier.weight(1f)); Text("NOW SPINNING", letterSpacing = 2.sp, fontSize = 12.sp, color = Lavender)
             }
             AsyncImage(album.coverImage ?: album.thumb, "${album.artistName} — ${album.title}",
                 Modifier.size(if (compact) 250.dp else 330.dp).padding(vertical = 8.dp), contentScale = ContentScale.Crop)
             Text(album.artistName, fontWeight = FontWeight.Black, fontSize = if (compact) 22.sp else 27.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(album.title, fontSize = if (compact) 19.sp else 23.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            HorizontalDivider(Modifier.padding(vertical = if (compact) 10.dp else 18.dp), color = Rust.copy(alpha = .3f))
+            HorizontalDivider(Modifier.padding(vertical = if (compact) 10.dp else 18.dp), color = Lavender.copy(alpha = .35f))
             Metadata("YEAR", album.year.takeIf { it > 0 }?.toString() ?: "Unknown")
             Metadata("LABEL", album.labelName)
             Metadata("FORMAT", album.formatName)
@@ -189,7 +206,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable private fun Metadata(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-        Text(label, Modifier.width(66.dp), color = Rust, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Text(label, Modifier.width(66.dp), color = Lavender, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         Text(value, Modifier.weight(1f), fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
