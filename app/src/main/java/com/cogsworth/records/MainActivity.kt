@@ -52,6 +52,7 @@ private val Night = Color(0xFF101014)
 private val Charcoal = Color(0xFF1A1A20)
 private val Cloud = Color(0xFFF4F1F8)
 private val Lavender = Color(0xFFA9A7FF)
+private const val IDLE_MOSAIC_REFRESH_MILLIS = 60L * 60 * 1_000
 
 class MainActivity : ComponentActivity() {
     private val model: MainViewModel by viewModels()
@@ -156,7 +157,14 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable private fun IdleMosaicScreen(releases: List<CollectionItem>) {
-    val sourceCovers = remember(releases) {
+    var mosaicRotation by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(IDLE_MOSAIC_REFRESH_MILLIS)
+            mosaicRotation++
+        }
+    }
+    val sourceCovers = remember(releases, mosaicRotation) {
         releases.mapNotNull { it.basic.coverImage?.takeIf(String::isNotBlank) ?: it.basic.thumb?.takeIf(String::isNotBlank) }
             .shuffled()
     }
