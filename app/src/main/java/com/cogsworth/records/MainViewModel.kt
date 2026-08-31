@@ -13,6 +13,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import retrofit2.HttpException
 
+private const val COLLECTION_REFRESH_INTERVAL_MILLIS = 6L * 60L * 60L * 1_000L
+private const val BUSY_REFRESH_RETRY_MILLIS = 60_000L
+
 enum class SortMode { ARTIST, ALBUM }
 
 data class BulkMoveProgress(
@@ -27,6 +30,7 @@ data class AppState(
     val loading: Boolean = false,
     val folders: List<DiscogsFolder> = emptyList(),
     val selectedFolderIds: Set<Int> = emptySet(),
+    val activeFolderIds: Set<Int> = emptySet(),
     val libraryVisible: Boolean = false,
     val releases: List<CollectionItem> = emptyList(),
     val selectedRelease: CollectionItem? = null,
@@ -71,7 +75,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _state = MutableStateFlow(AppState(configured = repository.credentials.token() != null))
     val state: StateFlow<AppState> = _state.asStateFlow()
 
-    init { if (_state.value.configured) loadFolders() }
+    init {
+        if (_state.value.configured) loadFolders()
+        startPeriodicCollectionRefresh()
+    }
 
     fun configure(username: String, token: String) {
         if (username.isBlank() || token.isBlank()) {
@@ -96,12 +103,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun browseSelectedFolders() {
-        val folders = _state.value.selectedFolders
-        if (folders.isEmpty()) return
+        val selectedFolderIds = _state.value.selectedFolderIds
+        if (selectedFolderIds.isEmpty()) return
         launchRequest {
-            _state.value = _state.value.copy(libraryVisible = true, releases = emptyList())
-            val combined = folders.flatMap { repository.releases(it.id) }.distinctBy { it.instanceId }
-            _state.value = _state.value.copy(releases = combined)
+            val snapshot = refreshCollections(selectedFolderIds)
+            if (snapshot.folderIds.isEmpty()) {
+                throw IllegalStateException("The selected collections are no longer available.")
+            }
+            _state.value = _state.value.copy(
+                folders = snapshot.folders,
+                selectedFolderIds = snapshot.folderIds,
+                activeFolderIds = snapshot.folderIds,
+                libraryVisible = true,
+                releases = snapshot.releases
+            )
         }
     }
 
@@ -273,6 +288,61 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun dismissError() { _state.value = _state.value.copy(error = null) }
     fun signOut() { repository.credentials.clear(); _state.value = AppState() }
+
+    private data class CollectionSnapshot(
+        val folders: List<DiscogsFolder>,
+        val folderIds: Set<Int>,
+        val releases: List<CollectionItem>
+    )
+
+    private suspend fun refreshCollections(folderIds: Set<Int>): CollectionSnapshot {
+        val folders = repository.folders()
+        val availableFolderIds = folders.mapTo(mutableSetOf()) { it.id }
+        val validFolderIds = folderIds.intersect(availableFolderIds)
+        val releases = validFolderIds
+            .flatMap { repository.releases(it) }
+            .distinctBy { it.instanceId }
+        return CollectionSnapshot(folders, validFolderIds, releases)
+    }
+
+    private fun startPeriodicCollectionRefresh() = viewModelScope.launch {
+        while (true) {
+            delay(COLLECTION_REFRESH_INTERVAL_MILLIS)
+            while (_state.value.loading || _state.value.bulkMoveProgress != null) {
+                delay(BUSY_REFRESH_RETRY_MILLIS)
+            }
+            val current = _state.value
+            val folderIds = current.activeFolderIds
+            if (
+                !current.configured ||
+                folderIds.isEmpty() ||
+                current.selectedFolderIds != folderIds
+            ) continue
+
+            try {
+                val snapshot = refreshCollections(folderIds)
+                val latest = _state.value
+                if (
+                    latest.activeFolderIds == folderIds &&
+                    latest.selectedFolderIds == folderIds &&
+                    !latest.loading &&
+                    latest.bulkMoveProgress == null
+                ) {
+                    _state.value = latest.copy(
+                        folders = snapshot.folders,
+                        selectedFolderIds = snapshot.folderIds,
+                        activeFolderIds = snapshot.folderIds,
+                        releases = snapshot.releases,
+                        selectedRelease = latest.selectedRelease?.let { selected ->
+                            snapshot.releases.find { it.instanceId == selected.instanceId }
+                        }
+                    )
+                }
+            } catch (_: Exception) {
+                // Keep the current kiosk display intact and try again at the next interval.
+            }
+        }
+    }
 
     private fun launchRequest(block: suspend () -> Unit) = viewModelScope.launch {
         _state.value = _state.value.copy(loading = true, error = null)
