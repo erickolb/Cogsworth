@@ -280,9 +280,9 @@ class MainActivity : ComponentActivity() {
             Text("App icon", color = Lavender, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(Modifier.height(10.dp))
             Text(
-                "Ui icons created by Rooman12 - Flaticon",
+                "Exhibition icons created by Magnific - Flaticon",
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { uriHandler.openUri("https://www.flaticon.com/free-icons/ui") }
+                modifier = Modifier.clickable { uriHandler.openUri("https://www.flaticon.com/free-icons/exhibition") }
             )
             Text("Tap the attribution to visit Flaticon.", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
         }

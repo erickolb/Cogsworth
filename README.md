@@ -31,4 +31,4 @@ This project contains code generated with assistance from OpenAI Codex. AI-gener
 
 ## Icon attribution
 
-<a href="https://www.flaticon.com/free-icons/ui" title="ui icons">Ui icons created by Rooman12 - Flaticon</a>
+<a href="https://www.flaticon.com/free-icons/exhibition" title="exhibition icons">Exhibition icons created by Magnific - Flaticon</a>
