@@ -166,14 +166,9 @@ class MainActivity : ComponentActivity() {
     }
     val sourceCovers = remember(releases, mosaicRotation) {
         releases.mapNotNull { it.basic.coverImage?.takeIf(String::isNotBlank) ?: it.basic.thumb?.takeIf(String::isNotBlank) }
-            .shuffled()
     }
     val covers = remember(sourceCovers) {
-        when {
-            sourceCovers.isEmpty() -> emptyList()
-            sourceCovers.size >= 60 -> sourceCovers.take(60)
-            else -> List(60) { sourceCovers[it % sourceCovers.size] }.shuffled()
-        }
+        selectMosaicCovers(sourceCovers)
     }
     BoxWithConstraints(Modifier.fillMaxSize().background(Night)) {
         if (covers.isEmpty()) return@BoxWithConstraints
@@ -221,6 +216,17 @@ class MainActivity : ComponentActivity() {
         ) {
             Text("Tap to return", Modifier.padding(horizontal = 18.dp, vertical = 9.dp), color = Cloud, fontSize = 13.sp)
         }
+    }
+}
+
+internal fun selectMosaicCovers(sourceCovers: List<String>, targetSize: Int = 60): List<String> {
+    if (targetSize <= 0) return emptyList()
+    val uniqueCovers = sourceCovers.distinct().shuffled()
+    if (uniqueCovers.isEmpty()) return emptyList()
+    return if (uniqueCovers.size >= targetSize) {
+        uniqueCovers.take(targetSize)
+    } else {
+        List(targetSize) { uniqueCovers[it % uniqueCovers.size] }.shuffled()
     }
 }
 
