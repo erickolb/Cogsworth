@@ -1,0 +1,20 @@
+# Changelog
+
+All notable changes to Cogsworth will be documented in this file.
+
+Cogsworth uses semantic versioning. Unless the project owner designates a major or minor release, the next release increments the patch version.
+
+## Unreleased
+
+### Added
+
+- Added first-run Discogs setup instructions, an app privacy policy, Android version requirements, support links, and an independence notice to the project website.
+- Added a documented versioning and changelog process.
+
+## 0.1.0 - 2026-09-24
+
+### Added
+
+- Established the initial Cogsworth development baseline.
+- Added browsing, searching, random selection, multi-folder selection, record movement, album details, and an idle album-cover mosaic.
+- Added encrypted local storage for a Discogs username and personal access token.

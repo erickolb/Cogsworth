@@ -7,3 +7,9 @@ app/build/
 captures/
 .externalNativeBuild/
 .cxx/
+
+# Release signing material must never be committed.
+*.jks
+*.keystore
+*.p12
+keystore.properties

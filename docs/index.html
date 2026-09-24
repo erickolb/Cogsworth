@@ -13,7 +13,7 @@
   <a class="skip" href="#main">Skip to content</a>
   <header class="header wrap">
     <a class="brand" href="#" aria-label="Cogsworth home"><img src="assets/icon.png" width="42" height="42" alt=""><span>Cogsworth</span></a>
-    <nav aria-label="Main navigation"><a href="#screenshots">The app</a><a href="https://github.com/erickolb/Cogsworth">GitHub <span aria-hidden="true">↗</span></a></nav>
+    <nav aria-label="Main navigation"><a href="#screenshots">The app</a><a href="#setup">Setup</a><a href="#privacy">Privacy</a><a href="https://github.com/erickolb/Cogsworth">GitHub <span aria-hidden="true">↗</span></a></nav>
   </header>
   <main id="main">
     <section class="hero wrap" aria-labelledby="intro">
@@ -21,7 +21,7 @@
         <h1 id="intro">Cogsworth</h1><p class="hero-description">A display, search, and multi-collection management app for Android devices.</p>
         <p class="intro">Less deciding. More listening. Cogsworth brings your Discogs collection to your Android device, right beside the turntable.</p>
         <a class="button" href="#screenshots">Take a look inside <span aria-hidden="true">↓</span></a>
-        <p class="platform">Made for Android · Connected to Discogs</p>
+        <p class="platform">Made for Android · Requires Android 8.0 or newer · Connected to Discogs</p>
       </div>
       <figure class="hero-photo"><img src="assets/cogsworth-at-home.jpg" width="2048" height="1536" alt="Cogsworth displaying a wall of album covers on a phone beside a turntable and shelves of records" fetchpriority="high"><figcaption><span>AT HOME, BESIDE THE TURNTABLE</span><span>01 / COGSWORTH</span></figcaption></figure>
     </section>
@@ -40,8 +40,31 @@
         <figure><a href="assets/mosaic.jpg" aria-label="View full-size album mosaic screenshot"><img src="assets/mosaic.jpg" alt="A full-screen three-column mosaic of colourful album covers from the collection" width="720" height="1600" loading="lazy"></a><figcaption><span>04</span><div><h3>Enjoy the cover art</h3><p>Your collection becomes a display. After 60 seconds of idle time, a scrolling display of your collections' album covers makes the app beautiful as well as functional.</p></div></figcaption></figure>
       </div></div>
     </section>
+    <section id="setup" class="info-section wrap" aria-labelledby="setup-title">
+      <div class="info-heading"><p class="eyebrow">First-run setup</p><h2 id="setup-title">Connect your collection.</h2></div>
+      <div class="info-content">
+        <p>Cogsworth connects directly to Discogs using your Discogs username and a personal access token. You only need to enter these once.</p>
+        <ol>
+          <li>Sign in to Discogs and open <a href="https://www.discogs.com/settings/developers">Settings → Developers</a>.</li>
+          <li>Generate a personal access token if you do not already have one.</li>
+          <li>Open Cogsworth and enter your Discogs username and token.</li>
+          <li>Choose one or more custom collection folders to start browsing.</li>
+        </ol>
+        <p>Cogsworth does not display Discogs’ automatically generated “All” folder. Your token is encrypted on your Android device using Android Keystore.</p>
+      </div>
+    </section>
+    <section id="privacy" class="privacy-section" aria-labelledby="privacy-title">
+      <div class="wrap info-section">
+        <div class="info-heading"><p class="eyebrow">Privacy</p><h2 id="privacy-title">Your collection stays between you and Discogs.</h2></div>
+        <div class="info-content">
+          <p>Cogsworth sends your Discogs username, personal access token, and collection requests directly to Discogs so it can display and organize your collection. Album artwork is loaded from the image addresses supplied by Discogs.</p>
+          <p>Cogsworth has no developer-operated server and includes no advertising or analytics. It does not send your credentials, collection, or app activity to the Cogsworth developer or to any independent third party. Your username and encrypted token remain on your device until you clear them or remove the app.</p>
+          <p>This privacy policy applies to the Cogsworth Android app. Discogs processes information according to its own <a href="https://support.discogs.com/hc/articles/360009334593-Privacy-Policy">privacy policy</a>.</p>
+        </div>
+      </div>
+    </section>
     <section class="closing wrap"><div><p class="eyebrow">Built for the listening room</p><h2>Put your collection<br>back in rotation.</h2></div><div><p>Cogsworth connects persistently using your Discogs username and personal access token. Explore the Android app and setup instructions on GitHub.</p><a class="button secondary" href="https://github.com/erickolb/Cogsworth">Explore on GitHub <span aria-hidden="true">↗</span></a></div></section>
   </main>
-  <footer class="wrap"><div class="footer-top"><a class="brand" href="#"><img src="assets/icon.png" width="32" height="32" alt=""><span>Cogsworth</span></a><span>A little closer to your music.</span></div><p class="fine-print">This project contains code generated with assistance from OpenAI Codex.</p><p class="fine-print">App icon: <a href="https://www.flaticon.com/free-icons/exhibition" title="exhibition icons">Exhibition icons created by Magnific - Flaticon</a></p></footer>
+  <footer class="wrap"><div class="footer-top"><a class="brand" href="#"><img src="assets/icon.png" width="32" height="32" alt=""><span>Cogsworth</span></a><span>A little closer to your music.</span></div><div class="footer-links"><a href="https://github.com/erickolb/Cogsworth/issues">Report a problem</a><a href="https://github.com/erickolb/Cogsworth/blob/main/CHANGELOG.md">Changelog</a><a href="#privacy">Privacy</a></div><p class="fine-print">Cogsworth is an independent app and is not affiliated with, endorsed by, or sponsored by Discogs.</p><p class="fine-print">This project contains code generated with assistance from OpenAI Codex.</p><p class="fine-print">App icon: <a href="https://www.flaticon.com/free-icons/exhibition" title="exhibition icons">Exhibition icons created by Magnific - Flaticon</a></p></footer>
 </body>
 </html>
