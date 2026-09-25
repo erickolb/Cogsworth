@@ -170,7 +170,8 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            echo "Release $GITHUB_REF_NAME already exists; nothing to publish."
+            gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+            echo "Release $GITHUB_REF_NAME already exists; ensured it is published and marked latest."
             exit 0
           fi
           gh release create "$GITHUB_REF_NAME" \
