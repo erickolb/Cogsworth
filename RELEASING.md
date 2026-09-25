@@ -29,6 +29,16 @@ Android accepts an update only when it is signed with the same app-signing key a
 
 Never commit the keystore, `keystore.properties`, passwords, or encoded copies of the key. The repository ignores common signing-key filenames as a second line of defense.
 
+### Release certificate
+
+All public Cogsworth APKs must use the permanent certificate with this SHA-256 fingerprint:
+
+```text
+EC:BC:DF:78:1E:09:EE:09:83:C9:CB:7C:D5:06:DF:68:C4:7B:D6:B1:A9:2E:5E:87:59:52:8E:EC:AB:F3:21:C0
+```
+
+Verify this fingerprint before publishing every release.
+
 For automated releases, store an encoded copy of the keystore and each password as GitHub Actions secrets. Keep an independent offline backup because GitHub secrets cannot be downloaded again. The workflow and exact secret names should be added only after the permanent key exists.
 
 ## GitHub release assets
@@ -61,7 +71,7 @@ After the first release, test the user flow by installing Obtainium, adding `htt
 ## First-release checklist
 
 - [x] Confirm the package name `net.chateaulore.cogsworth` is permanent.
-- [ ] Create and back up the permanent signing key.
+- [x] Create and back up the permanent signing key.
 - [ ] Add signing secrets and a tag-driven GitHub Actions release workflow.
 - [ ] Verify the signed APK on an Android 8.0 device or emulator and a current Android device.
 - [ ] Verify upgrade installation from the previous signed build.
