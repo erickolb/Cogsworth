@@ -1,0 +1,149 @@
+name: Release Android APK
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish signed APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Verify tag matches app version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts)"
+          if [[ -z "$version" ]]; then
+            echo "Could not read versionName from app/build.gradle.kts" >&2
+            exit 1
+          fi
+          if [[ "${GITHUB_REF_NAME}" != "v${version}" ]]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match app version v${version}" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Validate signing secrets
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Required GitHub Actions secret $name is missing" >&2
+              exit 1
+            fi
+          done
+
+      - name: Restore temporary signing keystore
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/cogsworth-release.jks"
+          chmod 600 "$RUNNER_TEMP/cogsworth-release.jks"
+
+      - name: Test and build signed release APK
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/cogsworth-release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew :app:testDebugUnitTest :app:assembleRelease --no-daemon
+
+      - name: Verify APK identity and signature
+        shell: bash
+        env:
+          EXPECTED_CERT_SHA256: ecbcdf781e09ee0983c9cb7cd506df68c47bd6b1a92e5e8759528eecabf321c0
+          EXPECTED_PACKAGE: net.chateaulore.cogsworth
+          EXPECTED_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          apk="app/build/outputs/apk/release/app-release.apk"
+          test -f "$apk"
+
+          build_tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          apksigner="$build_tools/apksigner"
+          aapt="$build_tools/aapt"
+
+          verify_output="$($apksigner verify --verbose --print-certs "$apk")"
+          printf '%s\n' "$verify_output" | grep -q '^Verifies$'
+          printf '%s\n' "$verify_output" | grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true'
+
+          actual_cert="$(printf '%s\n' "$verify_output" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          if [[ "$actual_cert" != "$EXPECTED_CERT_SHA256" ]]; then
+            echo "Release certificate fingerprint does not match the permanent Cogsworth certificate" >&2
+            exit 1
+          fi
+
+          badging="$($aapt dump badging "$apk")"
+          printf '%s\n' "$badging" | grep -q "package: name='$EXPECTED_PACKAGE'"
+          printf '%s\n' "$badging" | grep -q "versionName='$EXPECTED_VERSION'"
+
+      - name: Prepare release files and notes
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          cp app/build/outputs/apk/release/app-release.apk release/Cogsworth.apk
+          (
+            cd release
+            sha256sum Cogsworth.apk > Cogsworth.apk.sha256
+          )
+          awk -v version="$VERSION" '
+            /^## / {
+              if (found) exit
+              if ($0 ~ "^## " version "([[:space:]]|$)") found=1
+            }
+            found { print }
+          ' CHANGELOG.md > release/notes.md
+          if [[ ! -s release/notes.md ]]; then
+            echo "No CHANGELOG.md section found for $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Create GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            release/Cogsworth.apk \
+            release/Cogsworth.apk.sha256 \
+            --verify-tag \
+            --title "Cogsworth $VERSION" \
+            --notes-file release/notes.md

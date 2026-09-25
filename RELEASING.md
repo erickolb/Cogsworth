@@ -41,6 +41,13 @@ Verify this fingerprint before publishing every release.
 
 For automated releases, store an encoded copy of the keystore and each password as GitHub Actions secrets. Keep an independent offline backup because GitHub secrets cannot be downloaded again. The workflow and exact secret names should be added only after the permanent key exists.
 
+The release workflow expects these repository secrets:
+
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
 ## GitHub release assets
 
 Each stable release should attach:
@@ -72,7 +79,7 @@ After the first release, test the user flow by installing Obtainium, adding `htt
 
 - [x] Confirm the package name `net.chateaulore.cogsworth` is permanent.
 - [x] Create and back up the permanent signing key.
-- [ ] Add signing secrets and a tag-driven GitHub Actions release workflow.
+- [x] Add signing secrets and a tag-driven GitHub Actions release workflow.
 - [ ] Verify the signed APK on an Android 8.0 device or emulator and a current Android device.
 - [ ] Verify upgrade installation from the previous signed build.
 - [ ] Confirm the privacy policy, setup instructions, screenshots, and support link.
