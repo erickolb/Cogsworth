@@ -6,6 +6,12 @@ Cogsworth uses semantic versioning. Unless the project owner designates a major 
 
 ## Unreleased
 
+## 1.0.0 - 2026-09-25
+
+### Changed
+
+- Designated the current Cogsworth build as the first stable release.
+
 ## 0.1.4 - 2026-09-25
 
 ### Changed
