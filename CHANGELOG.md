@@ -6,17 +6,12 @@ Cogsworth uses semantic versioning. Unless the project owner designates a major 
 
 ## Unreleased
 
-## 0.1.3 - 2026-09-25
-
-### Fixed
-
-- Replaced the Cogsworth artwork on the website’s Obtainium installation button with Obtainium’s official icon.
-
 ## 0.1.2 - 2026-09-25
 
 ### Changed
 
 - Added a prominent Obtainium installation button to the website alongside the direct APK download.
+- Used Obtainium’s official icon on its installation button.
 - Inset the launcher artwork so it remains visible within rounded device icon masks and changed its background from beige to the pale blue used inside the display case.
 - Kept the dark navigation-bar treatment compatible with Android 8.0 while applying the newer navigation-bar setting on Android 8.1 and later.
 

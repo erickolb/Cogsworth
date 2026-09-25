@@ -22,8 +22,8 @@ android {
         applicationId = "net.chateaulore.cogsworth"
         minSdk = 26
         targetSdk = 37
-        versionCode = 4
-        versionName = "0.1.3"
+        versionCode = 3
+        versionName = "0.1.2"
     }
     if (hasReleaseSigning) {
         signingConfigs {
