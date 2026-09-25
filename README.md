@@ -2,7 +2,7 @@
 
 A native Android browser and shuffle picker for a Discogs collection. Discogs custom collection folders are treated as physical record locations/shelves.
 
-[Website](https://erickolb.github.io/Cogsworth/) · [Changelog](CHANGELOG.md) · [Release guide](RELEASING.md) · [Report a problem](https://github.com/erickolb/Cogsworth/issues)
+[Download](https://github.com/erickolb/Cogsworth/releases/latest/download/Cogsworth.apk) · [Website](https://erickolb.github.io/Cogsworth/) · [Changelog](CHANGELOG.md) · [Release guide](RELEASING.md) · [Report a problem](https://github.com/erickolb/Cogsworth/issues)
 
 ## Features
 
@@ -29,7 +29,7 @@ The app currently keeps fetched releases in memory for fast local sort/search/sh
 
 ## Versioning
 
-Cogsworth uses semantic versioning. The current development baseline is `0.1.0`. Patch releases increment automatically for compatible changes; major and minor version changes are chosen by the project owner.
+Cogsworth uses semantic versioning. The current public release is `0.1.1`. Patch releases increment automatically for compatible changes; major and minor version changes are chosen by the project owner.
 
 ## AI-generated code disclosure
 
