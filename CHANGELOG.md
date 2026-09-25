@@ -6,6 +6,12 @@ Cogsworth uses semantic versioning. Unless the project owner designates a major 
 
 ## Unreleased
 
+## 0.1.4 - 2026-09-25
+
+### Changed
+
+- Reduced the launcher artwork to 75% of its v0.1.2 size for substantially more room within device icon masks.
+
 ## 0.1.3 - 2026-09-25
 
 ### Changed
