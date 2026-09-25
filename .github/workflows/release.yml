@@ -112,7 +112,13 @@ jobs:
             exit 1
           fi
 
-          actual_cert="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<< "$verify_output")"
+          actual_cert="$(
+            grep -i 'certificate SHA-256 digest' <<< "$verify_output" \
+              | grep -oE '[0-9a-fA-F]{64}' \
+              | head -n 1 \
+              | tr '[:upper:]' '[:lower:]' \
+              || true
+          )"
           if [[ "$actual_cert" != "$EXPECTED_CERT_SHA256" ]]; then
             echo "::error title=Release certificate mismatch::Expected $EXPECTED_CERT_SHA256 but received ${actual_cert:-no fingerprint}"
             exit 1
