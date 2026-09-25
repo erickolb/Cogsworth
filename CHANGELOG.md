@@ -6,6 +6,12 @@ Cogsworth uses semantic versioning. Unless the project owner designates a major 
 
 ## Unreleased
 
+## 0.1.3 - 2026-09-25
+
+### Fixed
+
+- Replaced the Cogsworth artwork on the website’s Obtainium installation button with Obtainium’s official icon.
+
 ## 0.1.2 - 2026-09-25
 
 ### Changed
