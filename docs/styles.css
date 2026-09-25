@@ -9,3 +9,4 @@
 .screenshot-close:hover{color:var(--accent)}
 .screenshot-close:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .button-row{display:flex;flex-wrap:wrap;gap:12px}.button-row .secondary{margin-left:0}.release-links{display:flex;flex-wrap:wrap;gap:22px;font-size:14px}
+.obtainium-button{background:#e6f6ff;border-color:#e6f6ff}.obtainium-button:hover{background:#fff;color:#16131f}.obtainium-button img{width:24px;height:24px;object-fit:contain}
