@@ -1,4 +1,4 @@
-package com.cogsworth.records
+package net.chateaulore.cogsworth
 
 import android.os.Bundle
 import android.widget.Toast
@@ -42,8 +42,8 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.cogsworth.records.data.CollectionItem
-import com.cogsworth.records.data.DiscogsFolder
+import net.chateaulore.cogsworth.data.CollectionItem
+import net.chateaulore.cogsworth.data.DiscogsFolder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive

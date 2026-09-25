@@ -4,15 +4,15 @@ plugins {
 }
 
 android {
-    namespace = "com.cogsworth.records"
+    namespace = "net.chateaulore.cogsworth"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.cogsworth.records"
+        applicationId = "net.chateaulore.cogsworth"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
     }
     buildFeatures { compose = true; buildConfig = true }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }

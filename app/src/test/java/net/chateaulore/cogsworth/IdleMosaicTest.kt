@@ -1,4 +1,4 @@
-package com.cogsworth.records
+package net.chateaulore.cogsworth
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

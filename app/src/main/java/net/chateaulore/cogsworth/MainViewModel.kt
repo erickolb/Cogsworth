@@ -1,11 +1,11 @@
-package com.cogsworth.records
+package net.chateaulore.cogsworth
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.cogsworth.records.data.CollectionItem
-import com.cogsworth.records.data.DiscogsFolder
-import com.cogsworth.records.data.DiscogsRepository
+import net.chateaulore.cogsworth.data.CollectionItem
+import net.chateaulore.cogsworth.data.DiscogsFolder
+import net.chateaulore.cogsworth.data.DiscogsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

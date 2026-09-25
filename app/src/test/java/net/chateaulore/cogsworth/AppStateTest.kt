@@ -1,9 +1,9 @@
-package com.cogsworth.records
+package net.chateaulore.cogsworth
 
-import com.cogsworth.records.data.BasicInformation
-import com.cogsworth.records.data.CollectionItem
-import com.cogsworth.records.data.DiscogsFolder
-import com.cogsworth.records.data.NamedValue
+import net.chateaulore.cogsworth.data.BasicInformation
+import net.chateaulore.cogsworth.data.CollectionItem
+import net.chateaulore.cogsworth.data.DiscogsFolder
+import net.chateaulore.cogsworth.data.NamedValue
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

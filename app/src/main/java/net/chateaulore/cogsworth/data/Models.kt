@@ -1,4 +1,4 @@
-package com.cogsworth.records.data
+package net.chateaulore.cogsworth.data
 
 import com.google.gson.annotations.SerializedName
 

@@ -1,4 +1,4 @@
-package com.cogsworth.records.data
+package net.chateaulore.cogsworth.data
 
 import retrofit2.http.GET
 import retrofit2.http.Body

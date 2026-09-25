@@ -60,7 +60,7 @@ After the first release, test the user flow by installing Obtainium, adding `htt
 
 ## First-release checklist
 
-- [ ] Confirm the package name `com.cogsworth.records` is permanent.
+- [x] Confirm the package name `net.chateaulore.cogsworth` is permanent.
 - [ ] Create and back up the permanent signing key.
 - [ ] Add signing secrets and a tag-driven GitHub Actions release workflow.
 - [ ] Verify the signed APK on an Android 8.0 device or emulator and a current Android device.

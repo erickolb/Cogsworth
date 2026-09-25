@@ -6,6 +6,12 @@ Cogsworth uses semantic versioning. Unless the project owner designates a major 
 
 ## Unreleased
 
+## 0.1.1 - 2026-09-25
+
+### Changed
+
+- Changed the permanent Android application ID, namespace, and Kotlin packages to `net.chateaulore.cogsworth` before the first public release.
+
 ### Added
 
 - Added first-run Discogs setup instructions, an app privacy policy, Android version requirements, support links, and an independence notice to the project website.

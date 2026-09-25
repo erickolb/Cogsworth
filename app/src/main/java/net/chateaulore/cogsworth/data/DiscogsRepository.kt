@@ -1,4 +1,4 @@
-package com.cogsworth.records.data
+package net.chateaulore.cogsworth.data
 
 import android.content.Context
 import okhttp3.Interceptor
