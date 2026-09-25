@@ -90,37 +90,47 @@ jobs:
         run: |
           set -euo pipefail
           apk="app/build/outputs/apk/release/app-release.apk"
-          test -f "$apk"
+          if [[ ! -f "$apk" ]]; then
+            echo "::error title=Release APK missing::Expected signed APK at $apk"
+            exit 1
+          fi
 
           build_tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           apksigner="$build_tools/apksigner"
           aapt="$build_tools/aapt"
 
-          verify_output="$($apksigner verify --verbose --print-certs "$apk")"
+          if ! verify_output="$($apksigner verify --verbose --print-certs "$apk" 2>&1)"; then
+            echo "::error title=APK signature verification failed::apksigner rejected the generated release APK"
+            exit 1
+          fi
           if ! grep -q '^Verifies$' <<< "$verify_output"; then
-            echo "APK signature verification did not succeed" >&2
+            echo "::error title=APK signature verification failed::apksigner did not report a successful verification"
             exit 1
           fi
           if ! grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' <<< "$verify_output"; then
-            echo "APK is not signed with APK Signature Scheme v2" >&2
+            echo "::error title=APK V2 signature missing::The release APK is not signed with APK Signature Scheme v2"
             exit 1
           fi
 
           actual_cert="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<< "$verify_output")"
           if [[ "$actual_cert" != "$EXPECTED_CERT_SHA256" ]]; then
-            echo "Release certificate fingerprint does not match the permanent Cogsworth certificate" >&2
+            echo "::error title=Release certificate mismatch::Expected $EXPECTED_CERT_SHA256 but received ${actual_cert:-no fingerprint}"
             exit 1
           fi
 
-          badging="$($aapt dump badging "$apk")"
+          if ! badging="$($aapt dump badging "$apk" 2>&1)"; then
+            echo "::error title=APK metadata inspection failed::aapt could not read the generated release APK"
+            exit 1
+          fi
           if ! grep -q "package: name='$EXPECTED_PACKAGE'" <<< "$badging"; then
-            echo "APK package name does not match $EXPECTED_PACKAGE" >&2
+            echo "::error title=APK package mismatch::Expected package $EXPECTED_PACKAGE"
             exit 1
           fi
           if ! grep -q "versionName='$EXPECTED_VERSION'" <<< "$badging"; then
-            echo "APK version does not match $EXPECTED_VERSION" >&2
+            echo "::error title=APK version mismatch::Expected version $EXPECTED_VERSION"
             exit 1
           fi
+          echo "Verified $EXPECTED_PACKAGE $EXPECTED_VERSION with certificate $actual_cert"
 
       - name: Prepare release files and notes
         shell: bash
