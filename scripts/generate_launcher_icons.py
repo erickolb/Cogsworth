@@ -23,12 +23,12 @@ for folder, size in (
     destination.mkdir(parents=True, exist_ok=True)
     canvas = Image.new("RGBA", (size, size), launcher_background)
     # Leave enough room for launchers that apply aggressive rounded masks.
-    art = source.resize((round(size * 0.76), round(size * 0.76)), Image.Resampling.LANCZOS)
+    art = source.resize((round(size * 0.684), round(size * 0.684)), Image.Resampling.LANCZOS)
     canvas.alpha_composite(art, ((size - art.width) // 2, (size - art.height) // 2))
     canvas.save(destination / "ic_launcher.png")
 
 foreground_dir = resources / "drawable"
 foreground_dir.mkdir(parents=True, exist_ok=True)
 foreground = Image.new("RGBA", (432, 432), (0, 0, 0, 0))
-foreground.alpha_composite(source.resize((264, 264), Image.Resampling.LANCZOS), (84, 84))
+foreground.alpha_composite(source.resize((238, 238), Image.Resampling.LANCZOS), (97, 97))
 foreground.save(foreground_dir / "ic_launcher_foreground.png")
