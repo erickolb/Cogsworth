@@ -6,6 +6,10 @@ Cogsworth uses semantic versioning. Unless the project owner designates a major 
 
 ## Unreleased
 
+### Documentation
+
+- Documented optional rating display and editing, local configuration, and Discogs rating updates in the README, website, and app privacy policy.
+
 ## 1.1.0 - 2026-11-16
 
 ### Added

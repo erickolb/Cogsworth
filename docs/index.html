@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111015">
-  <meta name="description" content="Cogsworth is an Android companion for your Discogs collection. Browse your shelves, find a record, and rediscover what to play next.">
+  <meta name="description" content="Cogsworth is an Android companion for your Discogs collection. Browse your shelves, optionally display and edit your Discogs ratings, and rediscover what to play next.">
   <title>Cogsworth — A display, search, and multi-collection management app for Android devices.</title>
   <link rel="icon" href="assets/icon.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
@@ -31,10 +31,12 @@
       <article><span class="number">02 / REDISCOVER</span><h2>Let the next record find you.</h2><p>Can’t decide what to play? Pick a random album from your selected collection and give a forgotten favourite another spin.</p></article>
       <article><span class="number">03 / DISPLAY</span><h2>Give the artwork the room.</h2><p>Leave Cogsworth beside your turntable. After a minute of inactivity, a scrolling mosaic of your album covers takes over the screen.</p></article>
       <article><span class="number">04 / REORGANIZE</span><h2>From collection to collection....</h2><p>Use multiple collections to keep track of the physical location of certain records? Select one or several collections to limit what you search on the current session. Easily move one or multiple records between collections.</p></article>
+      <article><span class="number">05 / RATE</span><h2>Your ratings, beside your records.</h2><p>Optionally show your personal Discogs star ratings on record details and listings. Unrated records show empty stars, and five-star favourites shine more brightly. With editing enabled, tap a star on Record Detail to save a whole-star rating from 1 to 5 directly to Discogs, without a confirmation button.</p></article>
+      <article><span class="number">06 / CONFIGURE</span><h2>Choose what you see and change.</h2><p>Open the Configuration gear between Reload and Credits on the shelf selection page. Display ratings on Record Detail, allow editing there, and display ratings on Record Listing each have their own switch, all On by default. Hiding detail ratings also switches editing Off and disables it. Your preferences stay on your device.</p></article>
     </section>
     <section id="install" class="privacy-section" aria-labelledby="install-title">
       <div class="wrap info-section">
-        <div class="info-heading"><p class="eyebrow">Version 1.0.0</p><h2 id="install-title">Install Cogsworth.</h2></div>
+        <div class="info-heading"><p class="eyebrow">Version 1.1.0</p><h2 id="install-title">Install Cogsworth.</h2></div>
         <div class="info-content">
           <ol>
             <li><a href="https://github.com/erickolb/Cogsworth/releases/latest/download/Cogsworth.apk">Download the latest Cogsworth APK</a> on your Android device.</li>
@@ -66,6 +68,7 @@
           <li>Open Cogsworth and enter your Discogs username and token.</li>
           <li>Choose one or more custom collection folders to start browsing.</li>
         </ol>
+        <p>In Configuration, you can turn rating display and editing on or off. After turning detail ratings back on, you can enable editing again. Cogsworth supports star ratings, rather than written reviews.</p>
         <p>Cogsworth does not display Discogs’ automatically generated “All” folder. Your token is encrypted on your Android device using Android Keystore.</p>
       </div>
     </section>
@@ -73,8 +76,10 @@
       <div class="wrap info-section">
         <div class="info-heading"><p class="eyebrow">Privacy</p><h2 id="privacy-title">Your collection stays between you and Discogs.</h2></div>
         <div class="info-content">
-          <p>Cogsworth sends your Discogs username, personal access token, and collection requests directly to Discogs so it can display and organize your collection. Album artwork is loaded from the image addresses supplied by Discogs.</p>
+          <p>Cogsworth sends your Discogs username, personal access token, and collection requests directly to Discogs so it can display and organize your collection, including your personal ratings. When you move a record between folders or tap a star to change a rating, Cogsworth sends the record identifiers and the new folder or rating directly to Discogs using your credentials. Album artwork is loaded from the image addresses supplied by Discogs.</p>
+          <p>Displaying ratings on record details and listings, and editing ratings on Record Detail, are optional. All three options default to On. Configuration preferences are saved locally on your device. Turning rating display off hides the stars; collection data, including ratings, is still fetched from Discogs. Hiding ratings does not delete or change existing Discogs ratings.</p>
           <p>Cogsworth has no developer-operated server and includes no advertising or analytics. It does not send your credentials, collection, or app activity to the Cogsworth developer or to any independent third party. Your username and encrypted token remain on your device until you clear them or remove the app.</p>
+          <p>Last updated: November 16, 2026.</p>
           <p>This privacy policy applies to the Cogsworth Android app. Discogs processes information according to its own <a href="https://support.discogs.com/hc/articles/360009334593-Privacy-Policy">privacy policy</a>.</p>
         </div>
       </div>
