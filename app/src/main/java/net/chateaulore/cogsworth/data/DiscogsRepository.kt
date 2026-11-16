@@ -15,7 +15,7 @@ class DiscogsRepository(context: Context) {
         val client = OkHttpClient.Builder().addInterceptor(Interceptor { chain ->
             chain.proceed(chain.request().newBuilder()
                 .header("Authorization", "Discogs token=$token")
-                .header("User-Agent", "CogsworthAndroid/0.1")
+                .header("User-Agent", "CogsworthAndroid/${net.chateaulore.cogsworth.BuildConfig.VERSION_NAME}")
                 .build())
         }).build()
         return Retrofit.Builder().baseUrl("https://api.discogs.com/")
@@ -44,6 +44,12 @@ class DiscogsRepository(context: Context) {
             item.instanceId,
             MoveCollectionItemRequest(destinationFolderId)
         )
+        if (!response.isSuccessful) throw HttpException(response)
+    }
+    suspend fun rate(item: CollectionItem, rating: Int) {
+        require(rating in 1..5)
+        val response = api().rateRelease(credentials.username, item.folderId, item.id,
+            item.instanceId, RatingRequest(rating))
         if (!response.isSuccessful) throw HttpException(response)
     }
 }

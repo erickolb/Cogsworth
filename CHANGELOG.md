@@ -6,6 +6,16 @@ Cogsworth uses semantic versioning. Unless the project owner designates a major 
 
 ## Unreleased
 
+## 1.1.0 - 2026-11-16
+
+### Added
+
+- Persistent Configuration switches for detail ratings, rating editing, and listing ratings.
+- Personal Discogs collection ratings on record details and listings, with brighter five-star ratings and empty stars for unrated records.
+- Tap a detail star to save a whole-star rating to Discogs immediately.
+- Collection shelf name at the bottom of record metadata.
+
+
 ## 1.0.0 - 2026-09-25
 
 ### Changed

@@ -1,3 +1,3 @@
 # TODO
 
-- [ ] Add ratings as an option on record display pages.
+- [x] Add ratings as an option on record display pages.

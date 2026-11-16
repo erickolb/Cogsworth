@@ -1,6 +1,8 @@
 package net.chateaulore.cogsworth
 
 import android.app.Application
+import net.chateaulore.cogsworth.data.Configuration
+import net.chateaulore.cogsworth.data.ConfigurationStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import net.chateaulore.cogsworth.data.CollectionItem
@@ -26,6 +28,9 @@ data class BulkMoveProgress(
 )
 
 data class AppState(
+    val configuration: Configuration = Configuration(),
+    val configurationVisible: Boolean = false,
+    val ratingSaving: Boolean = false,
     val configured: Boolean = false,
     val loading: Boolean = false,
     val folders: List<DiscogsFolder> = emptyList(),
@@ -72,7 +77,8 @@ data class AppState(
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = DiscogsRepository(application)
-    private val _state = MutableStateFlow(AppState(configured = repository.credentials.token() != null))
+    private val configurationStore = ConfigurationStore(application)
+    private val _state = MutableStateFlow(AppState(configured = repository.credentials.token() != null, configuration = configurationStore.load()))
     val state: StateFlow<AppState> = _state.asStateFlow()
 
     init {
@@ -86,7 +92,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         repository.credentials.save(username, token)
-        _state.value = AppState(configured = true)
+        _state.value = AppState(configured = true, configuration = configurationStore.load())
         loadFolders()
     }
 
@@ -117,6 +123,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 libraryVisible = true,
                 releases = snapshot.releases
             )
+        }
+    }
+
+    fun showConfiguration() { _state.value = _state.value.copy(configurationVisible = true) }
+    fun dismissConfiguration() { _state.value = _state.value.copy(configurationVisible = false) }
+    fun updateConfiguration(value: Configuration) {
+        val normalized = if (value.displayDetailRatings) value else value.withDetailRatings(false)
+        configurationStore.save(normalized)
+        _state.value = _state.value.copy(configuration = normalized)
+    }
+    fun rateSelected(rating: Int) {
+        val current = _state.value
+        val item = current.selectedRelease ?: return
+        if (!current.configuration.canEditRatings || current.ratingSaving || current.loading || rating !in 1..5 || item.rating == rating) return
+        _state.value = current.copy(ratingSaving = true)
+        viewModelScope.launch {
+            try {
+                repository.rate(item, rating)
+                val latest = _state.value
+                _state.value = latest.copy(
+                    releases = latest.releases.map { if (it.instanceId == item.instanceId) it.copy(rating = rating) else it },
+                    selectedRelease = latest.selectedRelease?.let { if (it.instanceId == item.instanceId) it.copy(rating = rating) else it }
+                )
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(error = "Could not save rating. ${e.message ?: "Please try again."}")
+            } finally { _state.value = _state.value.copy(ratingSaving = false) }
         }
     }
 
@@ -275,6 +307,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = _state.value.copy(
             libraryVisible = true,
             acknowledgementsVisible = false,
+            configurationVisible = false,
             selectedRelease = null,
             changeCollectionVisible = false,
             bulkMoveMode = false,
@@ -287,7 +320,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
     fun dismissError() { _state.value = _state.value.copy(error = null) }
-    fun signOut() { repository.credentials.clear(); _state.value = AppState() }
+    fun signOut() { repository.credentials.clear(); _state.value = AppState(configuration = configurationStore.load()) }
 
     private data class CollectionSnapshot(
         val folders: List<DiscogsFolder>,
@@ -308,7 +341,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun startPeriodicCollectionRefresh() = viewModelScope.launch {
         while (true) {
             delay(COLLECTION_REFRESH_INTERVAL_MILLIS)
-            while (_state.value.loading || _state.value.bulkMoveProgress != null) {
+            while (_state.value.loading || _state.value.ratingSaving || _state.value.bulkMoveProgress != null) {
                 delay(BUSY_REFRESH_RETRY_MILLIS)
             }
             val current = _state.value
@@ -326,6 +359,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     latest.activeFolderIds == folderIds &&
                     latest.selectedFolderIds == folderIds &&
                     !latest.loading &&
+                    !latest.ratingSaving &&
                     latest.bulkMoveProgress == null
                 ) {
                     _state.value = latest.copy(

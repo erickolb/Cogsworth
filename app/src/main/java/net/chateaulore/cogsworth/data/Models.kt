@@ -10,8 +10,11 @@ data class CollectionItem(
     val id: Long,
     @SerializedName("instance_id") val instanceId: Long,
     @SerializedName("folder_id") val folderId: Int = 0,
-    @SerializedName("basic_information") val basic: BasicInformation
+    @SerializedName("basic_information") val basic: BasicInformation,
+    val rating: Int = 0
 )
+data class RatingRequest(val rating: Int)
+
 data class MoveCollectionItemRequest(@SerializedName("folder_id") val folderId: Int)
 data class BasicInformation(
     val id: Long,

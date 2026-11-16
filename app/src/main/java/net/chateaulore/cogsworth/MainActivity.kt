@@ -23,6 +23,14 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.*
+import net.chateaulore.cogsworth.data.Configuration
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
@@ -119,12 +127,15 @@ class MainActivity : ComponentActivity() {
                 state.bulkMoveProgress != null -> BulkMoveProgressScreen(state.bulkMoveProgress!!)
                 state.bulkDestinationPickerVisible -> BulkDestinationScreen(state, model)
                 state.acknowledgementsVisible -> AcknowledgementsScreen(model::dismissAcknowledgements)
-                state.selectedRelease != null -> RecordDetail(state.selectedRelease!!, model::dismissDetail, model::shuffle, model::showChangeCollection)
+                state.selectedRelease != null -> RecordDetail(state.selectedRelease!!, state, model::rateSelected, model::dismissDetail, model::shuffle, model::showChangeCollection)
                 state.libraryVisible -> LibraryScreen(state, model)
                 else -> FolderScreen(state, model)
             }
             if (state.loading) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .12f)), Alignment.Center) { CircularProgressIndicator() }
         }
+    }
+    if (!idleVisible && state.configurationVisible) {
+        ConfigurationDialog(state.configuration, model::updateConfiguration, model::dismissConfiguration)
     }
     if (!idleVisible) state.error?.let { error ->
         AlertDialog(onDismissRequest = model::dismissError, confirmButton = { TextButton(onClick = model::dismissError) { Text("OK") } },
@@ -251,6 +262,7 @@ internal fun selectMosaicCovers(sourceCovers: List<String>, targetSize: Int = 60
         Row(Modifier.fillMaxWidth().padding(22.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) { Text("COGSWORTH", letterSpacing = 3.sp, fontWeight = FontWeight.Black, fontSize = 26.sp); Text("Choose a shelf", color = Lavender) }
             IconButton(model::loadFolders) { Icon(Icons.Rounded.Refresh, "Refresh") }
+            IconButton(model::showConfiguration) { Icon(Icons.Rounded.Settings, "Configuration") }
             IconButton(model::showAcknowledgements) { Icon(Icons.Rounded.Info, "Acknowledgements") }
         }
         Text("Select one or more collections", Modifier.padding(horizontal = 22.dp, vertical = 6.dp), color = Color.Gray)
@@ -330,6 +342,7 @@ internal fun selectMosaicCovers(sourceCovers: List<String>, targetSize: Int = 60
             items(state.visibleReleases, key = { it.instanceId }) { item ->
                 RecordRow(
                     item = item,
+                    displayRating = state.configuration.displayListingRatings,
                     selectionMode = state.bulkMoveMode,
                     selected = item.instanceId in state.bulkSelectedInstanceIds,
                     onClick = if (state.bulkMoveMode) model::toggleBulkItem else model::show
@@ -341,6 +354,7 @@ internal fun selectMosaicCovers(sourceCovers: List<String>, targetSize: Int = 60
 
 @Composable private fun RecordRow(
     item: CollectionItem,
+    displayRating: Boolean,
     selectionMode: Boolean,
     selected: Boolean,
     onClick: (CollectionItem) -> Unit
@@ -351,12 +365,14 @@ internal fun selectMosaicCovers(sourceCovers: List<String>, targetSize: Int = 60
             Text(item.basic.artistName, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(item.basic.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(listOf(item.basic.year.takeIf { it > 0 }?.toString(), item.basic.formatName).filterNotNull().joinToString(" · "), color = Color.Gray, fontSize = 12.sp, maxLines = 1)
+            if (displayRating) RatingStars(item.rating, small = true)
         }
         if (selectionMode) Checkbox(selected, { onClick(item) })
     }
 }
 
-@Composable private fun RecordDetail(item: CollectionItem, back: () -> Unit, randomAlbum: () -> Unit, changeCollection: () -> Unit) {
+@Composable private fun RecordDetail(item: CollectionItem, state: AppState, onRate: (Int) -> Unit, back: () -> Unit, randomAlbum: () -> Unit, changeCollection: () -> Unit) {
+    BackHandler(onBack = back)
     val album = item.basic
     BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         val compact = maxHeight < 680.dp
@@ -366,14 +382,19 @@ internal fun selectMosaicCovers(sourceCovers: List<String>, targetSize: Int = 60
                 Spacer(Modifier.weight(1f)); Text("NOW SPINNING", letterSpacing = 2.sp, fontSize = 12.sp, color = Lavender)
             }
             AsyncImage(album.coverImage ?: album.thumb, "${album.artistName} — ${album.title}",
-                Modifier.size(if (compact) 220.dp else 330.dp).padding(vertical = 8.dp), contentScale = ContentScale.Crop)
+                Modifier.size(if (compact) 170.dp else 280.dp).padding(vertical = 8.dp), contentScale = ContentScale.Crop)
             Text(album.artistName, fontWeight = FontWeight.Black, fontSize = if (compact) 22.sp else 27.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(album.title, fontSize = if (compact) 19.sp else 23.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             HorizontalDivider(Modifier.padding(vertical = if (compact) 10.dp else 18.dp), color = Lavender.copy(alpha = .35f))
+            if (state.configuration.displayDetailRatings) {
+                RatingStars(item.rating, onRate = if (state.configuration.canEditRatings && !state.ratingSaving && !state.loading) onRate else null)
+                if (state.ratingSaving) Text("Saving rating...", color = Lavender, fontSize = 12.sp)
+            }
             Metadata("YEAR", album.year.takeIf { it > 0 }?.toString() ?: "Unknown")
             Metadata("LABEL", album.labelName)
             Metadata("FORMAT", album.formatName)
             Metadata("GENRE", (album.genres + album.styles).distinct().joinToString(" · ").ifBlank { "Unknown" })
+            Metadata("COLLECTION", state.folders.find { it.id == item.folderId }?.name ?: "Unknown")
             Spacer(Modifier.weight(1f))
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FilledTonalButton(randomAlbum, Modifier.weight(1f)) {
@@ -464,7 +485,57 @@ internal fun selectMosaicCovers(sourceCovers: List<String>, targetSize: Int = 60
 
 @Composable private fun Metadata(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-        Text(label, Modifier.width(66.dp), color = Lavender, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Text(label, Modifier.width(90.dp), color = Lavender, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         Text(value, Modifier.weight(1f), fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable private fun ConfigurationDialog(value: Configuration, update: (Configuration) -> Unit, dismiss: () -> Unit) {
+    AlertDialog(onDismissRequest = dismiss, title = { Text("Configuration") },
+        text = {
+            Column {
+                ConfigurationSwitch("Display ratings on Record Detail", value.displayDetailRatings) {
+                    update(value.withDetailRatings(it))
+                }
+                ConfigurationSwitch("Allow editing ratings on Record Detail", value.canEditRatings, value.displayDetailRatings) {
+                    update(value.copy(allowEditingRatings = it))
+                }
+                ConfigurationSwitch("Display ratings on Record Listing", value.displayListingRatings) {
+                    update(value.copy(displayListingRatings = it))
+                }
+            }
+        }, confirmButton = { TextButton(dismiss) { Text("Done") } })
+}
+
+@Composable private fun ConfigurationSwitch(label: String, checked: Boolean, enabled: Boolean = true, change: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.weight(1f).padding(end = 12.dp), color = Cloud.copy(alpha = if (enabled) 1f else .38f))
+        Switch(checked, change, enabled = enabled)
+    }
+}
+
+@Composable private fun RatingStars(rating: Int, small: Boolean = false, onRate: ((Int) -> Unit)? = null) {
+    val normalized = rating.coerceIn(0, 5)
+    val color = if (normalized == 5) Color(0xFFFFE8A3) else Color(0xFFC3A65D)
+    Row(Modifier.semantics(mergeDescendants = onRate == null) {
+        if (onRate == null) contentDescription = if (normalized == 0) "Not rated" else "$normalized out of 5 stars"
+    }, verticalAlignment = Alignment.CenterVertically) {
+        (1..5).forEach { star ->
+            val starSize = if (small) 18.dp else 32.dp
+            val starContent: @Composable () -> Unit = {
+                Box(contentAlignment = Alignment.Center) {
+                    if (normalized == 5) Canvas(Modifier.size(starSize)) {
+                        for (radius in 3..10) drawCircle(color.copy(alpha = .018f), size.minDimension * radius / 12f, Offset(size.width / 2, size.height / 2))
+                    }
+                    Icon(if (star <= normalized) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                        null, Modifier.size(starSize), tint = if (star <= normalized) color else Color.Gray)
+                }
+            }
+            if (onRate != null) IconButton({ onRate(star) }, modifier = Modifier.size(48.dp).semantics {
+                contentDescription = "Rate $star out of 5 stars"
+                selected = star == normalized
+            }) { starContent() }
+            else starContent()
+        }
     }
 }

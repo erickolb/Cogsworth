@@ -27,4 +27,12 @@ interface DiscogsApi {
         @Path("instanceId") instanceId: Long,
         @Body request: MoveCollectionItemRequest
     ): Response<Unit>
+    @POST("users/{username}/collection/folders/{folderId}/releases/{releaseId}/instances/{instanceId}")
+    suspend fun rateRelease(
+        @Path("username") username: String,
+        @Path("folderId") folderId: Int,
+        @Path("releaseId") releaseId: Long,
+        @Path("instanceId") instanceId: Long,
+        @Body request: RatingRequest
+    ): Response<Unit>
 }

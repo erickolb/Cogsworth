@@ -13,7 +13,8 @@ A native Android browser and shuffle picker for a Discogs collection. Discogs cu
 - Move an album between existing Discogs collection folders
 - Select and move multiple physical album instances with confirmation and progress
 - Kiosk-friendly 60-second idle mosaic with a continuously scrolling wall of album covers
-- Compact, non-scrolling album detail screen
+- Compact, non-scrolling album detail screen with collection name
+- Configurable personal Discogs ratings on details and listings, with tap-to-save whole-star editing
 - One-time personal-token setup, encrypted with Android Keystore
 - Cogsworth launcher icon with in-app creator attribution
 
@@ -21,7 +22,7 @@ A native Android browser and shuffle picker for a Discogs collection. Discogs cu
 
 Open this directory in a current Android Studio installation, let Gradle sync, and run the `app` configuration on an Android 8.0+ device or emulator. The project targets Android API 37.
 
-On first launch, enter the Discogs username and a personal access token created under **Discogs Settings → Developers**. The app reads collection data and performs authenticated write operations only when moving albums between folders. Custom folders are shown; Discogs' generated “All” folder is intentionally omitted.
+On first launch, enter the Discogs username and a personal access token created under **Discogs Settings → Developers**. The app reads collection data and performs authenticated write operations when moving albums between folders or editing ratings. Custom folders are shown; Discogs' generated “All” folder is intentionally omitted.
 
 ## Notes
 
@@ -29,7 +30,7 @@ The app currently keeps fetched releases in memory for fast local sort/search/sh
 
 ## Versioning
 
-Cogsworth uses semantic versioning. The current public release is `0.1.1`. Patch releases increment automatically for compatible changes; major and minor version changes are chosen by the project owner.
+Cogsworth uses semantic versioning. The current public release is `1.1.0`. Patch releases increment automatically for compatible changes; major and minor version changes are chosen by the project owner.
 
 ## AI-generated code disclosure
 
